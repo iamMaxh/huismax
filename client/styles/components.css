@@ -28,6 +28,30 @@
 @keyframes pulse { to { transform: scale(3.2); opacity: 0; } }
 
 .live-mark-xl { font-size: var(--t-sm); gap: 10px; }
+
+/* "doing this right now": a black dot that breathes next to the personal status (red stays for LIVE) */
+.doing-dot {
+  display: inline-block;
+  position: relative;
+  width: max(6px, 0.3em);
+  height: max(6px, 0.3em);
+  margin-right: 0.45em;
+  border-radius: 50%;
+  background: var(--fg);
+  vertical-align: 0.14em;
+}
+.doing-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--fg);
+  animation: doing 2.4s ease-out infinite;
+}
+@keyframes doing { from { transform: scale(1); opacity: 0.4; } to { transform: scale(3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .doing-dot::after { animation: none; opacity: 0; } }
+/* no status, no dot */
+:has(> .doing-dot + [data-presence-status]:empty) > .doing-dot { display: none; }
 .live-mark-xl .live-dot { width: 10px; height: 10px; }
 
 /* ——— page head ——— */

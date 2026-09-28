@@ -82,6 +82,7 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
           {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
           <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
             <p class="presence-line presence-off">
+              <span class="doing-dot" aria-hidden="true" />
               <span data-presence-status>{presence.status}</span>
             </p>
             <Listening class="presence-off" feature pending={spotifyConnected} />
@@ -133,7 +134,8 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
           <span class="index-label mono">now</span>
           <ul class="index-list">
             <li>
-              <span class="mono dim">right now</span> <span data-presence-status>{presence.status}</span>
+              <span class="mono dim">right now</span> <span class="doing-dot" aria-hidden="true" />
+              <span data-presence-status>{presence.status}</span>
             </li>
             {now.map((n) => (
               <li>
