@@ -32,6 +32,14 @@
   margin-left: -0.05em;
 }
 .who-line { display: block; }
+
+/* typewriter on arrival (client/pages/home.ts). Hidden until it starts; shown anyway after 2.5 s if scripts never run. */
+.js .who[data-typewriter]:not(.is-typing, .is-typed) { visibility: hidden; animation: who-failsafe 0s 2.5s forwards; }
+@keyframes who-failsafe { to { visibility: visible; } }
+.who.is-typing .ch:not(.on) { visibility: hidden; }
+/* zero width, so the cursor never pushes the letters around */
+.who-cursor { display: inline-block; width: 0; font-weight: 400; animation: blink 0.9s steps(1) infinite; }
+.who-cursor.is-out { opacity: 0; animation: none; transition: opacity var(--mid) var(--ease); }
 .who-tagline {
   margin-top: clamp(16px, 2.4vh, 28px);
   max-width: 40ch;

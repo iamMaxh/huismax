@@ -24,7 +24,7 @@ function Headline({ text }: { text: string }) {
   const lines = cut > 0 ? [text.slice(0, cut), text.slice(cut + 1)] : [text];
   const last = lines.length - 1;
   return (
-    <h1 class="who">
+    <h1 class="who" data-typewriter>
       {lines.map((l, i) =>
         i === last && l.endsWith('?') ? (
           <span class="who-line">

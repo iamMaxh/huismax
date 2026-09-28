@@ -19,7 +19,8 @@ type Props = {
 };
 
 // Runs before paint so the stored theme never flashes.
-const themeBoot = `try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}`;
+// Also marks the page as scripted, so the homepage headline can wait for its typewriter instead of flashing.
+const themeBoot = `document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}`;
 
 const json = (v: unknown) => raw(JSON.stringify(v).replace(/</g, '\\u003c'));
 

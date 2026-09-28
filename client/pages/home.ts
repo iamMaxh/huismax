@@ -56,6 +56,8 @@ export const initHome: PageInit = (main, scope) => {
     }
   });
 
+  typeHeadline($('[data-typewriter]', main), scope);
+
   // Spotify progress on every device (a text + transform update twice a second, nothing else).
   tickListening(main);
   const tick = setInterval(() => tickListening(main), 500);
@@ -63,6 +65,65 @@ export const initHome: PageInit = (main, scope) => {
 
   rain($<HTMLCanvasElement>('[data-rain]', main)!, scope);
 };
+
+/**
+ * "WHO IS MAX?" types itself on arrival behind a blinking "_": the first line quickly, a beat, then the last word.
+ * Letters are only hidden (not removed) while typing, so nothing reflows.
+ */
+function typeHeadline(h1: HTMLElement | null, scope: Parameters<PageInit>[1]) {
+  if (!h1) return;
+  if (reducedMotion()) return void h1.classList.add('is-typed');
+  const lines = $$('.who-line', h1);
+  const chars: HTMLElement[] = [];
+  let pauseAt = -1;
+  const walk = (node: Node) => {
+    for (const child of [...node.childNodes]) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const frag = document.createDocumentFragment();
+        for (const c of child.textContent ?? '') {
+          const span = document.createElement('span');
+          span.className = 'ch';
+          span.textContent = c;
+          frag.append(span);
+          chars.push(span);
+        }
+        child.replaceWith(frag);
+      } else walk(child);
+    }
+  };
+  lines.forEach((line, i) => {
+    if (i === lines.length - 1 && i > 0) pauseAt = chars.length;
+    walk(line);
+  });
+  if (!chars.length) return void h1.classList.add('is-typed');
+
+  // hidden letters are invisible to screen readers too, so the heading says its full text meanwhile
+  h1.setAttribute('aria-label', lines.map((l) => l.textContent).join(' '));
+  const cursor = document.createElement('span');
+  cursor.className = 'who-cursor';
+  cursor.setAttribute('aria-hidden', 'true');
+  cursor.textContent = '_';
+  chars[0].before(cursor);
+  h1.classList.add('is-typing');
+
+  let i = 0;
+  let timer = 0;
+  const step = () => {
+    chars[i].classList.add('on');
+    chars[i].after(cursor);
+    i++;
+    if (i >= chars.length) {
+      h1.classList.replace('is-typing', 'is-typed');
+      h1.removeAttribute('aria-label');
+      // a few more blinks, then the cursor steps away
+      timer = window.setTimeout(() => cursor.classList.add('is-out'), 2600);
+      return;
+    }
+    timer = window.setTimeout(step, i === pauseAt ? 650 : i > pauseAt && pauseAt > 0 ? 120 : 55);
+  };
+  timer = window.setTimeout(step, 260);
+  scope.add(() => clearTimeout(timer));
+}
 
 /**
  * The homepage's one effect: sparse mono glyph rain behind everything, always on.
