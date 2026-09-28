@@ -15,8 +15,13 @@
     // Flip to "true" to go live without KV. With the STATE KV bound, POST /api/live-status wins.
     "LIVE": "false",
     "LIVE_STREAM_URL": "",
-    "LIVE_SESSION_TITLE": ""
+    "LIVE_SESSION_TITLE": "",
+    // Public by design (it appears in the Spotify login URL). The client SECRET is never here:
+    // it stays a Secret in the Cloudflare dashboard.
+    "SPOTIFY_CLIENT_ID": "e0ea0ee972a640e88f0aac83e2acb846"
   },
+  // Keep variables added in the dashboard instead of dropping them on each deploy.
+  "keep_vars": true,
   // Free-tier KV for live status, personal status and the guestbook.
   // No id needed: wrangler creates the namespace on first deploy.
   "kv_namespaces": [{ "binding": "STATE" }],

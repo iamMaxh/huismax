@@ -61,7 +61,7 @@ curl -X POST https://<site>/api/admin/presence -H "Authorization: Bearer $TOKEN"
 ## Spotify
 
 1. Spotify Developer Dashboard → your app → Settings → Redirect URIs: add `https://huismax.com/api/spotify/callback` (and `http://127.0.0.1:8787/api/spotify/callback` for local dev).
-2. Cloudflare → the Worker → Settings → Variables and Secrets: add **Secrets** `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
+2. `SPOTIFY_CLIENT_ID` is public and lives in `wrangler.jsonc` → `vars`. Cloudflare → the Worker → Settings → Variables and Secrets: add `SPOTIFY_CLIENT_SECRET` as type **Secret** (runtime, not the Build section). `/admin` names any variable the worker can't see.
 3. Open `/admin` → ♪ spotify → connect. The refresh token is kept in KV; nothing token-related is ever sent to the browser.
 
 Public endpoints (edge-cached, safe to poll):
