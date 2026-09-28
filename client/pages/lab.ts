@@ -197,27 +197,10 @@ function visualizer(panel: HTMLElement, scope: Scope) {
 
 /* ——— random ——— */
 function random(panel: HTMLElement, scope: Scope, nav: (h: string) => void) {
-  const out = $('[data-random-out]', panel)!;
-  const lines = [
-    'photographs the rain, not the city.', 'plays slower than you think.', 'runs before the sun.',
-    'ships on sundays.', 'owns more cables than shoes.', 'r&b at 88 bpm.', 'f/1.7 or nothing.',
-    'the best part is the transition.', 'less, but better.', 'the site is the portfolio.',
-  ];
-  let last = -1;
-  const roll = () => {
-    let i;
-    do i = Math.floor(Math.random() * lines.length);
-    while (i === last);
-    last = i;
-    out.textContent = lines[i];
-    if (!reducedMotion()) out.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: 'ease-out' });
-  };
-  scope.on($('[data-random-roll]', panel)!, 'click', roll);
   scope.on($('[data-random-go]', panel)!, 'click', () => {
     const others = ROUTES.filter((r) => r !== location.pathname);
     nav(others[Math.floor(Math.random() * others.length)]);
   });
-  roll();
 }
 
 /* ——— terminal ——— */
@@ -248,11 +231,11 @@ function terminal(panel: HTMLElement, scope: Scope, nav: (h: string) => void, un
     whoami: () => print('photographer · dj · trail runner · vibe coder'),
     live: () => {
       const s = live.get();
-      print(s.isLive ? `● LIVE — ${s.sessionTitle ?? 'huismax dj channel'}` : '○ OFF AIR');
+      print(s.isLive ? `● LIVE — ${s.sessionTitle ?? 'huismax dj channel'}` : 'not live right now. archive → cd dj');
     },
     play: () => {
       const s = live.get();
-      if (!s.isLive) return print('○ OFF AIR — nothing to play', 'err');
+      if (!s.isLive) return print('not live right now. archive → cd dj', 'err');
       player.play({ kind: 'live', id: 'live', title: s.sessionTitle ?? 'huismax dj channel', url: s.streamUrl });
       print('tuning in…');
     },

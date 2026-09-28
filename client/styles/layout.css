@@ -42,16 +42,17 @@
 .site-nav a:hover::after, .site-nav a[aria-current='page']::after { transform: scaleX(1); transform-origin: left; }
 
 .header-tools { justify-self: end; display: flex; align-items: center; gap: 16px; }
-.kbd {
+.menu-btn {
   font: 500 var(--t-xs)/1 var(--font-mono);
   color: var(--fg-2);
   border: 1px solid var(--line-2);
-  border-radius: 6px;
-  padding: 6px 8px;
+  border-radius: 999px;
+  padding: 8px 14px;
   transition: color var(--fast), border-color var(--fast), background var(--fast);
 }
-.kbd:hover { color: var(--fg); border-color: var(--fg); }
-.kbd-mobile { display: none; }
+.menu-btn:hover { color: var(--bg); background: var(--fg); border-color: var(--fg); }
+/* DJ channel is coming soon: the header mark only appears while live */
+.header-live:has(.live-mark[data-live='off']) { display: none; }
 
 /* loading hairline while the router fetches */
 html[data-loading] .site-header::after {
@@ -199,14 +200,76 @@ main > *:nth-child(n + 4) { animation-delay: 240ms; }
   :root { --header-h: 56px; }
   .site-header { grid-template-columns: auto 1fr auto; }
   .site-nav { justify-self: center; gap: 14px; }
-  .header-live { display: none; }
-  .kbd-desktop { display: none; }
-  .kbd-mobile { display: inline; }
-  .footer-hint { display: none; }
+  .site-nav { display: none; }
+  .site-header { grid-template-columns: 1fr auto; }
   .audiobar-inner { gap: 12px; }
   .audiobar-viz, .audiobar-progress span { display: none; }
   .audiobar-channel { display: none; }
 }
-@media (max-width: 420px) {
-  .site-nav a[data-nav='home'] { display: none; }
+
+
+/* ——— menu overlay ——— */
+.menu {
+  width: 100vw; height: 100dvh; max-width: none; max-height: none;
+  margin: 0; padding: 0 var(--gutter) max(32px, env(safe-area-inset-bottom));
+  border: 0;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex; flex-direction: column;
+}
+.menu:not([open]) { display: none; }
+.menu[open] { animation: fade 220ms var(--ease) both; }
+.menu::backdrop { background: var(--bg); }
+.menu-top { height: var(--header-h); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
+.menu-primary { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.menu-primary a {
+  display: flex; align-items: baseline; gap: 20px;
+  padding: 6px 0;
+  outline: none;
+  animation: rise var(--slow) var(--ease) both;
+}
+.menu-primary a:nth-child(2) { animation-delay: 40ms; }
+.menu-primary a:nth-child(3) { animation-delay: 80ms; }
+.menu-primary a:nth-child(4) { animation-delay: 120ms; }
+.menu-primary a:nth-child(5) { animation-delay: 160ms; }
+.menu-idx { color: var(--fg-3); width: 24px; }
+.menu-label {
+  font-size: clamp(44px, 8vw, 104px);
+  font-weight: 450;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  transition: transform var(--mid) var(--ease), opacity var(--mid) var(--ease);
+}
+.menu-primary:hover .menu-label { opacity: 0.3; }
+.menu-primary a:hover .menu-label, .menu-primary a:focus-visible .menu-label { opacity: 1; transform: translateX(10px); }
+.menu-primary a:focus-visible .menu-label { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.12em; }
+.menu-primary a[aria-current='page'] .menu-idx { color: var(--fg); }
+.menu-secondary { display: flex; flex-wrap: wrap; gap: 8px 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.menu-secondary button { color: var(--fg-2); padding: 8px 0; }
+.menu-secondary button:hover { color: var(--fg); }
+html.menu-open { overflow: hidden; }
+
+/* ——— spotify listening (homepage + bottom bar) ——— */
+.listening { display: inline-flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; }
+.listening-art { flex: none; width: 36px; height: 36px; background: var(--bg-3); overflow: hidden; }
+.listening-art img { width: 100%; height: 100%; object-fit: cover; animation: fade 500ms var(--ease) both; }
+.listening-text { display: grid; gap: 3px; min-width: 0; }
+.listening-track { font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.listening[href]:hover .listening-track { text-decoration: underline; text-underline-offset: 3px; }
+.listening[data-state='playing'] .listening-state::before { content: '● '; }
+
+.audiobar-listening .listening-art { width: 30px; height: 30px; }
+.audiobar-listening .listening-text { display: flex; align-items: baseline; gap: 12px; }
+.audiobar[data-state='idle'] .live-mark,
+.audiobar[data-state='idle'] .audiobar-channel,
+.audiobar[data-state='idle'] .audiobar-viz { display: none; }
+.audiobar:not([data-state='idle']) .audiobar-listening { display: none; }
+.audiobar[data-state='idle'] .audiobar-inner { color: var(--fg); }
+
+/* nothing to show (not live, no audio, Spotify quiet): the bar steps out of the way */
+.audiobar { transition: transform var(--mid) var(--ease), background var(--mid) var(--ease); }
+.audiobar[data-state='idle']:not(:has(.audiobar-listening:not([hidden]))) { transform: translateY(100%); }
+.listening-state { white-space: nowrap; }
+@media (max-width: 720px) {
+  .audiobar-listening .listening-state { display: none; }
 }

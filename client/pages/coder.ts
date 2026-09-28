@@ -1,4 +1,4 @@
-import { $, $$, readJSON, reducedMotion, withTransition } from '../lib/dom';
+import { $, $$, readJSON, reducedMotion } from '../lib/dom';
 import type { PageInit } from '../main';
 
 type Project = { name: string; preview: string[] };
@@ -76,13 +76,4 @@ export const initCoder: PageInit = (main, scope) => {
     }
   });
 
-  const filter = $('[data-project-filter]', main)!;
-  scope.on(filter, 'click', (e: MouseEvent) => {
-    const b = (e.target as Element).closest<HTMLButtonElement>('button[data-status]');
-    if (!b) return;
-    $$('button', filter).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    const st = b.dataset.status!;
-    const run = () => $$('li[data-status]', list).forEach((li) => (li.hidden = st !== 'all' && li.dataset.status !== st));
-    withTransition(run);
-  });
 };

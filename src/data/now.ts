@@ -1,10 +1,5 @@
-export const nowUpdated = '2026-09-28';
-
+// Short, real. "right now" comes from /admin and "listening" from Spotify.
 export const now = [
-  { key: 'building', value: 'this site. Tapical. Foxx OBD on weekends.' },
-  { key: 'listening', value: 'Daniel Caesar on repeat.' },
-  { key: 'learning', value: 'long exposures. transitions between tracks under 100 bpm.' },
-  { key: 'training', value: '50k in november.' },
-  { key: 'thinking', value: 'less, but better.' },
-  { key: 'lately', value: 'early mornings, late sets.' },
+  { key: 'building', value: 'Tapical' },
+  { key: 'learning', value: 'DJ transitions' },
 ];

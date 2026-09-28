@@ -1,6 +1,6 @@
 export type Env = {
   ASSETS: Fetcher;
-  /** Optional KV namespace: live status overrides + guestbook. */
+  /** KV: live status, personal status, Spotify tokens, guestbook. */
   STATE?: KVNamespace;
   LIVE?: string;
   LIVE_STREAM_URL?: string;
@@ -8,4 +8,12 @@ export type Env = {
   /** Admin password + API bearer token. Set as a secret. */
   ADMIN_TOKEN?: string;
   ALLOW_MOCK?: string;
+  /** Dev only: origin used for OAuth redirects. */
+  PUBLIC_ORIGIN?: string;
+  /** Spotify app credentials (secrets). */
+  SPOTIFY_CLIENT_ID?: string;
+  SPOTIFY_CLIENT_SECRET?: string;
+  /** Test overrides; leave unset in production. */
+  SPOTIFY_ACCOUNTS_BASE?: string;
+  SPOTIFY_API_BASE?: string;
 };

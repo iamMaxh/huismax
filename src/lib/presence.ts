@@ -1,5 +1,4 @@
 import type { Env } from './env';
-import { nowPlaying } from '../data/music';
 
 /** Personal state shown under the identities. Stored in KV; live status overrides it on display only. */
 export type Presence = {
@@ -17,7 +16,7 @@ export const STATUS_PRESETS = [
 const KEY = 'presence';
 const DEFAULT: Presence = {
   status: 'building',
-  listening: { title: nowPlaying.title, artist: nowPlaying.artist },
+  listening: null,
   updatedAt: null,
 };
 

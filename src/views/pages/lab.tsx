@@ -43,9 +43,7 @@ export const Lab = ({ live }: { live: LiveStatus }) => (
             )}
             {name === 'random' && (
               <div class="exp exp-random">
-                <p class="random-out" data-random-out>—</p>
                 <div class="exp-row">
-                  <button type="button" class="btn-line" data-random-roll>roll</button>
                   <button type="button" class="btn-line" data-random-go>take me somewhere →</button>
                 </div>
               </div>

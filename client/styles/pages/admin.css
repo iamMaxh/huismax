@@ -145,3 +145,11 @@ body.admin { min-height: 100dvh; }
 
 /* public pages use the same treatment, set where [data-prox] appears */
 .index-cell[data-prox]::after { border-radius: 0; }
+
+.spotify-now { display: flex; align-items: center; gap: 14px; }
+.spotify-art { width: 56px; height: 56px; object-fit: cover; border-radius: 4px; }
+.btn-line.is-disabled { pointer-events: none; color: var(--fg-3); }
+.select-all { user-select: all; color: var(--fg-2); }
+.field-date { flex: 0 1 170px; }
+.admin-mixes li { display: grid; grid-template-columns: 44px 1fr auto auto; gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.admin-mixes .btn-line { height: 30px; }

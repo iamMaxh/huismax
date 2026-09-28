@@ -1,8 +1,11 @@
 import { $, Scope } from './lib/dom';
 import { proximity } from './lib/proximity';
+import { spotify } from './lib/spotify';
+import { paintListening } from './lib/listening';
 import { paintLive, startLivePolling } from './lib/live';
 import { startRouter } from './lib/router';
 import { startPalette } from './lib/palette';
+import { startMenu } from './lib/menu';
 import { startAudioBar, playLive } from './lib/audiobar';
 import { initHome } from './pages/home';
 import { initPhotographer } from './pages/photographer';
@@ -35,6 +38,7 @@ function mount(main: HTMLElement) {
   main.classList.add('is-entering');
   requestAnimationFrame(() => requestAnimationFrame(() => main.classList.remove('is-entering')));
   proximity(main, scope);
+  scope.add(spotify.subscribe((n) => paintListening(main, n)) as () => void);
   pages[main.dataset.page ?? '']?.(main, scope, router.navigate);
 }
 
@@ -44,6 +48,7 @@ const router = startRouter({
 });
 
 startPalette(router.navigate);
+startMenu(router.navigate);
 startAudioBar();
 startLivePolling();
 

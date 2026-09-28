@@ -9,17 +9,18 @@ type Mix = { id: string; title: string; audioUrl?: string };
 export const initDJ: PageInit = (main, scope) => {
   const mixes = readJSON<Mix[]>('mix-data', main) ?? [];
   const title = $('[data-dj-title]', main)!;
-  const signal = $('[data-dj-signal]', main)!;
   const clockEl = $('[data-dj-clock]', main)!;
-  const listenLabel = $('[data-listen-label]', main);
+  const kicker = $('[data-dj-kicker]', main)!;
+  const latestBtn = $<HTMLButtonElement>('.console-latest', main);
+  const latest = mixes[mixes.length - 1];
   const canvas = $<HTMLCanvasElement>('[data-dj-viz]', main)!;
 
   /* ——— live state ——— */
   let startedAt: number | null = null;
   const paint = (s: LiveStatus) => {
-    title.textContent = s.isLive ? s.sessionTitle ?? 'live' : 'nothing on air';
-    signal.textContent = s.isLive ? (s.streamUrl ? 'stream ready' : 'no stream url') : 'standby';
-    if (listenLabel) listenLabel.textContent = s.isLive ? 'listen' : 'off air';
+    title.textContent = s.isLive ? s.sessionTitle ?? 'live' : latest ? latest.title.replace(/^\d+ — /, '') : 'first transmission soon';
+    kicker.textContent = s.isLive ? 'now playing' : latest ? `latest · ${latest.title.slice(0, 3)}` : 'archive';
+    if (latestBtn) latestBtn.hidden = s.isLive;
     startedAt = s.isLive && s.startedAt ? Date.parse(s.startedAt) : null;
     tickClock();
   };
@@ -39,9 +40,11 @@ export const initDJ: PageInit = (main, scope) => {
       main.dataset.playing = String(ps.status === 'playing');
       for (const b of $$<HTMLButtonElement>('[data-play-mix]', main)) {
         const mine = ps.source?.id === b.dataset.playMix;
-        b.textContent = b.disabled ? '○' : mine && ps.status === 'playing' ? '❚❚' : '▶';
+        const playing = mine && ps.status === 'playing';
+        if (b.classList.contains('mix-play')) b.textContent = playing ? '❚❚' : '▶';
+        else $('[data-latest-label]', b)!.textContent = playing ? 'pause' : mine ? 'resume' : 'play';
       }
-      if (ps.message && ps.source?.kind === 'live') signal.textContent = ps.message;
+      if (ps.message && ps.source?.kind === 'live') title.textContent = ps.message;
     }) as () => void,
   );
 

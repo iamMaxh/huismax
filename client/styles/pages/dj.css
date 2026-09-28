@@ -78,9 +78,22 @@
   .dj-head { grid-template-columns: 1fr; }
   .dj-head .live-mark { margin: 0; }
   .console-bar { grid-template-columns: 1fr 1fr; }
+  .soon { margin: 0; justify-self: start; }
   .console-bar .console-cell:first-child { grid-column: 1 / -1; }
   .console-bar .btn-primary { grid-column: 1 / -1; }
   .dj-cols { grid-template-columns: 1fr; }
   .archive-table th:nth-child(n + 5), .archive-table td:nth-child(n + 5) { display: none; }
   .archive-table th:first-child, .archive-table td:first-child { display: none; }
 }
+
+.soon { align-self: end; margin-bottom: 1.4em; padding: 8px 14px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--fg-2); letter-spacing: 0.06em; text-transform: uppercase; }
+.console-bar { grid-template-columns: 1.4fr 1fr auto; }
+.archive-empty { padding: 48px 0 16px; display: grid; gap: 10px; }
+.archive-empty-title { font: 500 clamp(28px, 4vw, 52px)/1 var(--font-mono); letter-spacing: -0.02em; }
+.mix-title .mono { margin-right: 10px; }
+
+/* off-air is simply the absence of live: no label, no clock */
+.dj-page[data-live='off'] .console-clock-cell { display: none; }
+.console-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 32px; }
+.console-bar .console-cell:first-child { flex: 1 1 280px; min-width: 0; }
+.console-title { overflow-wrap: anywhere; }

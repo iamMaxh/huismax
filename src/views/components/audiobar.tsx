@@ -1,5 +1,6 @@
 import type { LiveStatus } from '../../lib/live';
 import { LiveMark } from './live';
+import { Listening } from './listening';
 
 /**
  * Persistent bottom player. Lives outside <main> so the client router never re-renders it,
@@ -8,6 +9,7 @@ import { LiveMark } from './live';
 export const AudioBar = ({ live }: { live: LiveStatus }) => (
   <aside class="audiobar" data-audiobar data-state={live.isLive ? 'live' : 'idle'} aria-label="player">
     <div class="audiobar-inner">
+      <Listening class="audiobar-listening" />
       <LiveMark live={live} />
       <a class="audiobar-channel" href="/dj">huismax dj channel</a>
       <span class="audiobar-title" data-player-title>{live.sessionTitle ?? ''}</span>

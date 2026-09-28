@@ -10,7 +10,7 @@ const pages: [string, string][] = [
   ['/vibe-coder', 'vibe coder'], ['/music', 'music'], ['/now', 'now'], ['/lab', 'lab'],
 ];
 
-/** ⌘K command menu: jump anywhere, plus a few site actions. */
+/** Hidden ⌘K / "/" command palette — an easter egg for keyboard people; the real menu is menu.ts. */
 export function startPalette(navigate: (href: string) => void) {
   const dialog = document.createElement('dialog');
   dialog.className = 'palette';
@@ -134,9 +134,6 @@ export function startPalette(navigate: (href: string) => void) {
       e.preventDefault();
       open();
     }
-  });
-  document.addEventListener('click', (e) => {
-    if ((e.target as Element).closest?.('[data-palette-open]')) open();
   });
 
   return { open, close };

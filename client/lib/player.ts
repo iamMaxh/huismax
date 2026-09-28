@@ -74,7 +74,7 @@ async function start(source: Source) {
       if ((err as DOMException)?.name === 'NotAllowedError') break;
     }
   }
-  set({ status: 'error', message: 'could not reach the stream' });
+  set({ status: 'error', message: source.kind === 'mix' ? 'could not load this mix' : 'could not reach the stream' });
 }
 
 export const player = {

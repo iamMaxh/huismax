@@ -2,6 +2,8 @@ import { $, clock, cssVar, fitCanvas, reducedMotion, Scope } from './dom';
 import { live } from './live';
 import { player, type PlayerState } from './player';
 import { readSpectrum } from './viz';
+import { spotify } from './spotify';
+import { paintListening } from './listening';
 
 export const playLive = () => {
   const s = live.get();
@@ -38,6 +40,7 @@ export function startAudioBar() {
   };
 
   player.subscribe(paint);
+  spotify.subscribe((n) => paintListening(bar, n));
   live.subscribe(() => paint());
 
   btn.addEventListener('click', () => {

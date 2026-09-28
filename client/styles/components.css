@@ -15,6 +15,8 @@
   position: relative;
 }
 .live-mark[data-live='on'] { color: var(--live); }
+/* public pages never say "off air": when not live the mark disappears */
+.live-mark[data-live='off'] { display: none; }
 .live-mark[data-live='on'] .live-dot { background: var(--live); border-color: var(--live); }
 .live-mark[data-live='on'] .live-dot::after {
   content: '';
@@ -38,7 +40,7 @@
 .crumb a:hover { color: var(--fg); }
 .page-title {
   font-weight: 500;
-  font-size: var(--t-hero);
+  font-size: clamp(52px, 9.5vw, 152px);
   line-height: 0.88;
   letter-spacing: -0.055em;
   margin-left: -0.04em;

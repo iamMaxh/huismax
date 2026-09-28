@@ -37,9 +37,10 @@ export const initHome: PageInit = (main, scope) => {
 
   const setMood = (m: Mood, text = '') => {
     target = m;
+    if (fine) wake();
     hero.dataset.mood = m;
     typeCaption(text);
-    if (reducedMotion()) {
+    if (reducedMotion() && fine) {
       moods.forEach((k) => (weight[k] = k === m ? 1 : 0));
       render(performance.now());
     }
@@ -66,24 +67,67 @@ export const initHome: PageInit = (main, scope) => {
     }
   });
 
+  // Touch devices and reduced motion get no pointer effects at all: no canvas, no loop.
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (!fine) {
+    canvas.hidden = true;
+    return;
+  }
+
   scope.on(hero, 'pointermove', (e: PointerEvent) => {
     const r = hero.getBoundingClientRect();
     pointer.x = (e.clientX - r.left) / r.width;
     pointer.y = (e.clientY - r.top) / r.height;
+    lastMove = performance.now();
+    wake();
+  });
+  scope.on(hero, 'pointerleave', () => {
+    lastMove = performance.now();
+    wake();
   });
 
   /* ——— mood layers ——— */
   const spectrum = new Uint8Array(64);
+  // Recent pointer positions, each fading out: dots near the path lift and drift, leaving a soft wake.
+  const trail: { x: number; y: number; e: number }[] = [];
+  const SIGMA = 70;
+  let lastMove = 0;
   const drops = Array.from({ length: 64 }, () => ({ y: Math.random(), v: 0.2 + Math.random() * 0.8, g: 0 }));
 
   const layers: Record<Mood, (t: number, a: number) => void> = {
     // quiet dot grid
+    // dot field that responds to the pointer's recent path
     none(_t, a) {
-      const step = 28;
+      const step = 26;
       ctx.fillStyle = fg;
-      ctx.globalAlpha = a * 0.16;
-      for (let x = step / 2; x < size.w; x += step)
-        for (let y = step / 2; y < size.h; y += step) ctx.fillRect(x, y, 1, 1);
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const p of trail) {
+        x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+      }
+      const pad = SIGMA * 3, inv = 1 / (2 * SIGMA * SIGMA);
+      const head = trail[trail.length - 1];
+      for (let x = step / 2; x < size.w; x += step) {
+        for (let y = step / 2; y < size.h; y += step) {
+          let inf = 0;
+          if (trail.length && x > x0 - pad && x < x1 + pad && y > y0 - pad && y < y1 + pad) {
+            for (const p of trail) {
+              const dx = x - p.x, dy = y - p.y;
+              inf += p.e * Math.exp(-(dx * dx + dy * dy) * inv);
+            }
+            inf = Math.min(1, inf * 0.35);
+          }
+          if (inf < 0.01) {
+            ctx.globalAlpha = a * 0.14;
+            ctx.fillRect(x, y, 1, 1);
+            continue;
+          }
+          const dx = x - head.x, dy = y - head.y, d = Math.hypot(dx, dy) || 1;
+          const push = inf * 7;
+          const r = 1 + inf * 1.2;
+          ctx.globalAlpha = a * (0.14 + inf * 0.5);
+          ctx.fillRect(x + (dx / d) * push - r / 2, y + (dy / d) * push - r / 2, r, r);
+        }
+      }
     },
     // viewfinder: thirds, crop corners, drifting focus box
     photo(t, a) {
@@ -194,6 +238,14 @@ export const initHome: PageInit = (main, scope) => {
 
   function render(t: number, dt = 16) {
     const k = 1 - Math.pow(0.001, dt / 1000 * 1.6);
+    const inside = t - lastMove < 1500 && pointer.x >= 0 && pointer.x <= 1 && pointer.y >= 0 && pointer.y <= 1;
+    for (const p of trail) p.e *= 0.93;
+    while (trail.length && trail[0].e < 0.02) trail.shift();
+    if (inside) {
+      const px = pointer.sx * size.w, py = pointer.sy * size.h, last = trail[trail.length - 1];
+      if (!last || Math.hypot(px - last.x, py - last.y) > 6) trail.push({ x: px, y: py, e: 1 });
+      if (trail.length > 24) trail.shift();
+    }
     for (const m of moods) weight[m] += ((m === target ? 1 : 0) - weight[m]) * (reducedMotion() ? 1 : k * 3);
     pointer.sx += (pointer.x - pointer.sx) * 0.08;
     pointer.sy += (pointer.y - pointer.sy) * 0.08;
@@ -202,6 +254,23 @@ export const initHome: PageInit = (main, scope) => {
     ctx.globalAlpha = 1;
   }
 
-  if (reducedMotion()) render(performance.now());
-  else scope.loop(render);
+  // Frames only run while something is moving; an idle homepage costs nothing.
+  let raf = 0, prev = 0;
+  const animated = () => weight.photo + weight.dj + weight.trail + weight.code > 0.01;
+  const settling = () => moods.some((m) => Math.abs((m === target ? 1 : 0) - weight[m]) > 0.005);
+  function frame(t: number) {
+    raf = 0;
+    render(t, prev ? Math.min(64, t - prev) : 16);
+    prev = t;
+    if (trail.length || animated() || settling() || t - lastMove < 1500) raf = requestAnimationFrame(frame);
+    else prev = 0;
+  }
+  function wake() {
+    if (!raf && !reducedMotion()) raf = requestAnimationFrame(frame);
+  }
+  scope.add(() => cancelAnimationFrame(raf));
+  scope.on(document, 'visibilitychange', () => document.hidden && (cancelAnimationFrame(raf), (raf = 0)));
+  scope.on(window, 'resize', () => (reducedMotion() ? render(performance.now()) : wake()));
+  render(performance.now());
+  wake();
 };

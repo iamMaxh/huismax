@@ -4,8 +4,10 @@ import type { Env } from './lib/env';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { getLiveStatus, setLiveStatus, type LiveStatus } from './lib/live';
 import { getPresence, setPresence } from './lib/presence';
+import { addMix, getMixes, removeMix } from './lib/mixes';
 import { checkPassword, COOKIE, isAdmin, sameOrigin, sessionValue } from './lib/auth';
 import { Admin, AdminLogin } from './views/admin';
+import { authorizeUrl, configured, connectedAs, disconnect, handleCallback, nowPlaying, recent } from './lib/spotify';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
 import { Photographer } from './views/pages/photographer';
@@ -21,6 +23,16 @@ type App = { Bindings: Env };
 type C = Context<App>;
 
 const app = new Hono<App>();
+
+// One canonical host (also keeps the Spotify redirect URI single).
+app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.hostname.startsWith('www.')) {
+    url.hostname = url.hostname.slice(4);
+    return c.redirect(url.toString(), 301);
+  }
+  await next();
+});
 
 // Dev only: ?live=1 / ?live=0 on any page (requires ALLOW_MOCK=1).
 const mockParam = (c: C) => {
@@ -45,11 +57,17 @@ app.get('/', async (c) => {
   return page(c, 'home', undefined, (live) => <Home live={live} presence={presence} />);
 });
 app.get('/photographer', (c) => page(c, 'photographer', 'Photographer', () => <Photographer />));
-app.get('/dj', (c) => page(c, 'dj', 'DJ', (live) => <DJ live={live} />));
+app.get('/dj', async (c) => {
+  const mixes = await getMixes(c.env);
+  return page(c, 'dj', 'DJ', (live) => <DJ live={live} mixes={mixes} />);
+});
 app.get('/trail-runner', (c) => page(c, 'trail-runner', 'Trail runner', () => <Trail />));
 app.get('/vibe-coder', (c) => page(c, 'vibe-coder', 'Vibe coder', () => <Coder />));
 app.get('/music', (c) => page(c, 'music', 'Music', () => <Music />));
-app.get('/now', (c) => page(c, 'now', 'Now', () => <Now />));
+app.get('/now', async (c) => {
+  const presence = await getPresence(c.env);
+  return page(c, 'now', 'Now', () => <Now presence={presence} />);
+});
 app.get('/lab', (c) => page(c, 'lab', 'Lab', (live) => <Lab live={live} />));
 app.get('/404', (c) => page(c, 'not-found', '404', () => <NotFound path="/404" />, 404));
 
@@ -83,7 +101,9 @@ app.get('/admin', async (c) => {
   if (!c.env.ADMIN_TOKEN) return c.html(<AdminLogin error="ADMIN_TOKEN secret is not set." />, 503);
   if (!(await isAdmin(c))) return c.html(<AdminLogin />);
   const [live, presence] = await Promise.all([getLiveStatus(c.env), getPresence(c.env)]);
-  return c.html(<Admin live={live} presence={presence} kv={!!c.env.STATE} />);
+  const spotify = { configured: configured(c.env), user: await connectedAs(c.env), notice: c.req.query('spotify') ?? null, redirectUri: redirectUri(c) };
+  const mixes = await getMixes(c.env);
+  return c.html(<Admin live={live} presence={presence} kv={!!c.env.STATE} spotify={spotify} mixes={mixes} />);
 });
 
 app.post('/admin/login', async (c) => {
@@ -144,6 +164,73 @@ app.post('/api/admin/presence', async (c) => {
   const b = await body(c);
   if (!b) return c.json({ error: 'invalid json' }, 400);
   return c.json(await setPresence(c.env, b));
+});
+
+/** DJ archive: { title, url, date? } → adds the next number. */
+app.post('/api/admin/mixes', async (c) => {
+  const denied = await guard(c);
+  if (denied) return denied;
+  const b = await body(c);
+  if (!b) return c.json({ error: 'invalid json' }, 400);
+  try {
+    return c.json(await addMix(c.env, b));
+  } catch (e) {
+    return c.json({ error: (e as Error).message }, 400);
+  }
+});
+
+app.delete('/api/admin/mixes/:id', async (c) => {
+  const denied = await guard(c);
+  if (denied) return denied;
+  return c.json(await removeMix(c.env, c.req.param('id')));
+});
+
+/* ——— spotify ——— */
+
+// PUBLIC_ORIGIN pins the origin in local dev, where wrangler rewrites the request URL to the route host.
+const redirectUri = (c: C) => `${c.env.PUBLIC_ORIGIN || new URL(c.req.url).origin}/api/spotify/callback`;
+
+/** Edge-cached JSON so every visitor's poll doesn't turn into a Spotify API call. */
+async function edgeCached<T extends { state: string }>(c: C, ttl: number, load: () => Promise<T>) {
+  const cache = (caches as unknown as { default: Cache }).default;
+  const key = new Request(new URL(c.req.path, c.req.url).toString());
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  const data = await load();
+  const res = new Response(JSON.stringify(data), {
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${ttl}` },
+  });
+  if (data.state !== 'error') c.executionCtx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
+app.get('/api/spotify/now', (c) => edgeCached(c, 10, () => nowPlaying(c.env)));
+app.get('/api/spotify/recent', (c) => edgeCached(c, 60, () => recent(c.env)));
+
+// Linking is admin-only, so nobody else can attach their account to the site.
+app.get('/api/spotify/login', async (c) => {
+  if (!(await isAdmin(c))) return c.redirect('/admin', 302);
+  if (!configured(c.env)) return c.redirect('/admin?spotify=unconfigured', 302);
+  return c.redirect(await authorizeUrl(c.env, redirectUri(c)), 302);
+});
+
+app.get('/api/spotify/callback', async (c) => {
+  const { code, state, error } = c.req.query();
+  if (error || !code || !state) return c.redirect(`/admin?spotify=${encodeURIComponent(error || 'cancelled')}`, 302);
+  try {
+    await handleCallback(c.env, code, state, redirectUri(c));
+    return c.redirect('/admin?spotify=connected', 302);
+  } catch (e) {
+    console.error('spotify callback', (e as Error).message);
+    return c.redirect('/admin?spotify=failed', 302);
+  }
+});
+
+app.post('/api/spotify/disconnect', async (c) => {
+  const denied = await guard(c);
+  if (denied) return denied;
+  await disconnect(c.env);
+  return c.json({ ok: true });
 });
 
 /* ——— guestbook (lab) ——— */

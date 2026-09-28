@@ -19,6 +19,7 @@ type Props = {
 const nav = [
   { href: '/', label: 'home', page: 'home' },
   { href: '/music', label: 'music', page: 'music' },
+  { href: '/dj', label: 'dj', page: 'dj' },
   { href: '/now', label: 'now', page: 'now' },
   { href: '/lab', label: 'lab', page: 'lab' },
 ] as const;
@@ -64,9 +65,8 @@ export const Layout = ({ page, title, description, live, children }: Props) => {
             <a class="header-live" href="/dj" aria-label="huismax dj channel status">
               <LiveMark live={live} />
             </a>
-            <button class="kbd" type="button" data-palette-open aria-label="open command menu" aria-keyshortcuts="Meta+K Control+K">
-              <span class="kbd-desktop">⌘K</span>
-              <span class="kbd-mobile">menu</span>
+            <button class="menu-btn" type="button" data-menu-open aria-haspopup="dialog">
+              menu
             </button>
           </div>
         </header>
@@ -77,9 +77,7 @@ export const Layout = ({ page, title, description, live, children }: Props) => {
 
         <footer class="site-footer">
           <span>huismax © 2026</span>
-          <span class="footer-hint">
-            press <kbd>⌘K</kbd> to go anywhere
-          </span>
+          <a class="footer-hint" href="/lab">lab</a>
         </footer>
 
         <AudioBar live={live} />

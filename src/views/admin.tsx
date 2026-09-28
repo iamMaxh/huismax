@@ -2,6 +2,7 @@ import { raw } from 'hono/html';
 import { assets } from '../generated/assets';
 import type { LiveStatus } from '../lib/live';
 import { STATUS_PRESETS, type Presence } from '../lib/presence';
+import type { Mix } from '../lib/mixes';
 
 const themeBoot = `try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}`;
 
@@ -39,7 +40,17 @@ export const AdminLogin = ({ error }: { error?: string }) => (
   </Shell>
 );
 
-export const Admin = ({ live, presence, kv }: { live: LiveStatus; presence: Presence; kv: boolean }) => (
+type SpotifyInfo = { configured: boolean; user: string | null; notice: string | null; redirectUri: string };
+
+const spotifyNotice: Record<string, string> = {
+  connected: 'connected.',
+  unconfigured: 'add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET as secrets first.',
+  failed: 'could not connect. check the redirect URI below is added in the Spotify dashboard.',
+  access_denied: 'cancelled on Spotify.',
+  cancelled: 'cancelled.',
+};
+
+export const Admin = ({ live, presence, kv, spotify, mixes }: { live: LiveStatus; presence: Presence; kv: boolean; spotify: SpotifyInfo; mixes: Mix[] }) => (
   <Shell title="admin">
     <header class="admin-head">
       <a class="wordmark" href="/" target="_blank" rel="noopener">huismax<span class="dim"> / admin</span></a>
@@ -76,13 +87,32 @@ export const Admin = ({ live, presence, kv }: { live: LiveStatus; presence: Pres
         </div>
       </section>
 
-      <section class="panel" data-prox aria-label="listening">
-        <span class="panel-label mono">♪ listening</span>
-        <div class="field-row">
-          <input class="field" type="text" maxlength={80} placeholder="track" value={presence.listening?.title ?? ''} data-listen-title aria-label="track" />
-          <input class="field" type="text" maxlength={80} placeholder="artist" value={presence.listening?.artist ?? ''} data-listen-artist aria-label="artist" />
-          <button type="button" class="btn-line" data-listen-clear>clear</button>
+      <section class="panel" data-prox aria-label="spotify" data-spotify-panel>
+        <div class="live-row">
+          <span class="panel-label mono">♪ spotify</span>
+          <span class="mono" data-spotify-state>{spotify.user ? `● ${spotify.user}` : spotify.configured ? '○ not connected' : '○ not configured'}</span>
         </div>
+        <div class="spotify-now" data-spotify-now hidden>
+          <img class="spotify-art" alt="" data-spotify-art />
+          <div>
+            <p data-spotify-track />
+            <p class="mono dim" data-spotify-meta />
+          </div>
+        </div>
+        {spotify.notice && <p class={`mono ${spotify.notice === 'connected' ? '' : 'save-err'}`}>{spotifyNotice[spotify.notice] ?? spotify.notice}</p>}
+        <div class="field-row">
+          {spotify.user ? (
+            <>
+              <a class="btn-line" href="/api/spotify/login">reconnect</a>
+              <button type="button" class="btn-line" data-spotify-disconnect>disconnect</button>
+            </>
+          ) : (
+            <a class={`btn-line${spotify.configured ? '' : ' is-disabled'}`} href="/api/spotify/login" aria-disabled={spotify.configured ? undefined : 'true'}>
+              connect spotify →
+            </a>
+          )}
+        </div>
+        <p class="mono dim">redirect URI: <span class="select-all">{spotify.redirectUri}</span></p>
       </section>
 
       <section class="panel live-panel" data-prox data-live={live.isLive ? 'on' : 'off'} aria-label="dj channel">
@@ -90,7 +120,7 @@ export const Admin = ({ live, presence, kv }: { live: LiveStatus; presence: Pres
           <span class="panel-label mono">huismax dj channel</span>
           <button type="button" class="switch" role="switch" aria-checked={live.isLive ? 'true' : 'false'} data-live-switch>
             <span class="switch-knob" aria-hidden="true" />
-            <span class="switch-label mono" data-live-switch-label>{live.isLive ? '● LIVE' : '○ OFF AIR'}</span>
+            <span class="switch-label mono" data-live-switch-label>{live.isLive ? '● LIVE' : '○ not live'}</span>
           </button>
         </div>
         <div class="field-row">
@@ -98,6 +128,27 @@ export const Admin = ({ live, presence, kv }: { live: LiveStatus; presence: Pres
           <input class="field field-wide" type="url" maxlength={300} placeholder="stream url (https://…)" value={live.streamUrl ?? ''} data-live-url aria-label="stream url" />
         </div>
         <p class="mono dim">going live replaces your status on the site. it comes back when you end the session.</p>
+      </section>
+
+      <section class="panel" data-prox aria-label="dj archive">
+        <span class="panel-label mono">dj archive</span>
+        <form class="field-row" data-mix-form>
+          <input class="field" name="title" maxlength={100} placeholder="title — late set" required aria-label="mix title" />
+          <input class="field field-wide" name="url" type="url" maxlength={500} placeholder="audio link (https://…/set.mp3)" required aria-label="audio link" />
+          <input class="field field-date" name="date" type="date" aria-label="date" />
+          <button type="submit" class="btn-line">add →</button>
+        </form>
+        <ol class="admin-mixes mono" data-mix-list>
+          {[...mixes].reverse().map((m) => (
+            <li data-mix={m.id}>
+              <span class="dim">{String(m.no).padStart(3, '0')}</span>
+              <span>{m.title}</span>
+              <span class="dim">{m.date}</span>
+              <button type="button" class="btn-line" data-mix-remove={m.id}>remove</button>
+            </li>
+          ))}
+        </ol>
+        <p class="mono dim">direct audio links play in the site player (mp3 / m4a — e.g. a public Cloudflare R2 file). numbers go 001, 002, 003 in the order you add them.</p>
       </section>
 
       <p class="admin-foot mono dim">

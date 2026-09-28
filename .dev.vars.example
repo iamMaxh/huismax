@@ -3,3 +3,8 @@
 ALLOW_MOCK=1
 # Required to toggle live status via /admin and the admin API (production: add it as a secret in the Cloudflare dashboard).
 ADMIN_TOKEN=dev-token
+# Spotify app (production: add both as secrets in the Cloudflare dashboard).
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+# Local dev only (Spotify allows http://127.0.0.1 redirect URIs)
+PUBLIC_ORIGIN=http://127.0.0.1:8787

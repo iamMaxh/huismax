@@ -1,6 +1,6 @@
 .home-hero {
   position: relative;
-  min-height: calc(100dvh - var(--header-h) - 40px);
+  min-height: calc(100dvh - var(--header-h) - 120px);
   display: flex;
   align-items: center;
   margin: 0 calc(var(--gutter) * -1);
@@ -19,7 +19,7 @@
 }
 .who {
   font-weight: 500;
-  font-size: var(--t-hero);
+  font-size: clamp(52px, 7.4vw, 120px);
   line-height: 0.86;
   letter-spacing: -0.06em;
   margin-left: -0.05em;
@@ -134,7 +134,7 @@ a.index-cell:hover { background: var(--bg-2); }
   .index-cell + .index-cell { border-top: 1px solid var(--line); }
 }
 @media (max-width: 560px) {
-  .who { font-size: 24vw; }
+  .who { font-size: 17vw; }
   .identity { padding: 16px 0; }
 }
 
@@ -149,3 +149,7 @@ a.index-cell:hover { background: var(--bg-2); }
 .presence[data-live='on'] .presence-off { display: none; }
 .home-hero:not([data-mood='none']) .presence { opacity: 0.35; }
 .presence { transition: opacity var(--mid) var(--ease); }
+
+.index-art { width: 72px; height: 72px; background: var(--bg-3); overflow: hidden; margin-bottom: 6px; }
+.index-art img { width: 100%; height: 100%; object-fit: cover; }
+.presence .listening { margin-top: 6px; }

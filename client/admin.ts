@@ -16,8 +16,6 @@ function initAdmin(main: HTMLElement) {
 
   const saveState = $('[data-save-state]')!;
   const statusInput = $<HTMLInputElement>('[data-status-input]', main)!;
-  const trackInput = $<HTMLInputElement>('[data-listen-title]', main)!;
-  const artistInput = $<HTMLInputElement>('[data-listen-artist]', main)!;
   const liveSwitch = $<HTMLButtonElement>('[data-live-switch]', main)!;
   const liveLabel = $('[data-live-switch-label]', main)!;
   const liveTitle = $<HTMLInputElement>('[data-live-title]', main)!;
@@ -30,12 +28,10 @@ function initAdmin(main: HTMLElement) {
     const { live, presence } = state;
     $('[data-preview]', main)!.dataset.live = live.isLive ? 'on' : 'off';
     $('[data-preview-state]', main)!.textContent = live.isLive ? '● LIVE' : presence.status || '—';
-    $('[data-preview-sub]', main)!.textContent = live.isLive
-      ? 'huismax dj channel'
-      : presence.listening ? `♪ ${presence.listening.title}${presence.listening.artist ? ` — ${presence.listening.artist}` : ''}` : '';
+    $('[data-preview-sub]', main)!.textContent = live.isLive ? 'huismax dj channel' : listeningLine;
     for (const c of chips) c.setAttribute('aria-checked', String(c.dataset.preset === presence.status));
     liveSwitch.setAttribute('aria-checked', String(live.isLive));
-    liveLabel.textContent = live.isLive ? '● LIVE' : '○ OFF AIR';
+    liveLabel.textContent = live.isLive ? '● LIVE' : '○ not live';
     livePanel.dataset.live = live.isLive ? 'on' : 'off';
   };
 
@@ -76,7 +72,6 @@ function initAdmin(main: HTMLElement) {
 
   const savers = {
     status: () => post('/api/admin/presence', { status: state.presence.status }),
-    listening: () => post('/api/admin/presence', { listening: state.presence.listening }),
     live: () => post('/api/live-status', { isLive: state.live.isLive, sessionTitle: liveTitle.value, streamUrl: liveUrl.value }),
   };
 
@@ -108,19 +103,75 @@ function initAdmin(main: HTMLElement) {
     chips[(i + d + chips.length) % chips.length].focus();
   });
 
-  /* ——— listening ——— */
-  const onListen = () => {
-    const title = trackInput.value.trim();
-    state.presence.listening = title ? { title, artist: artistInput.value.trim() } : null;
-    paint();
-    later('listening', savers.listening);
+  /* ——— spotify: preview what the site shows ——— */
+  let listeningLine = '';
+  const loadSpotify = async () => {
+    try {
+      const d = await fetch('/api/spotify/now', { cache: 'no-store' }).then((r) => r.json());
+      const box = $('[data-spotify-now]', main)!;
+      if (d.track) {
+        listeningLine = `♪ ${d.track.name} — ${d.track.artists}`;
+        box.hidden = false;
+        const art = $<HTMLImageElement>('[data-spotify-art]', main)!;
+        if (d.track.thumb) art.src = d.track.thumb;
+        art.hidden = !d.track.thumb;
+        $('[data-spotify-track]', main)!.textContent = `${d.track.name} — ${d.track.artists}`;
+        $('[data-spotify-meta]', main)!.textContent = d.state === 'playing' ? 'now playing' : d.state === 'paused' ? 'paused' : 'last played';
+      } else {
+        listeningLine = '';
+        box.hidden = true;
+      }
+      paint();
+    } catch {
+      /* leave preview as is */
+    }
   };
-  scope.on(trackInput, 'input', onListen);
-  scope.on(artistInput, 'input', onListen);
-  scope.on($('[data-listen-clear]', main)!, 'click', () => {
-    trackInput.value = artistInput.value = '';
-    onListen();
-    later('listening', savers.listening, 0);
+  loadSpotify();
+  const spotifyTimer = setInterval(loadSpotify, 20_000);
+  scope.add(() => clearInterval(spotifyTimer));
+  const disconnectBtn = $('[data-spotify-disconnect]', main);
+  if (disconnectBtn)
+    scope.on(disconnectBtn, 'click', async () => {
+      if (!confirm('disconnect spotify?')) return;
+      await post('/api/spotify/disconnect', {});
+      location.href = '/admin';
+    });
+
+  /* ——— dj archive ——— */
+  type Mix = { id: string; no: number; title: string; date: string };
+  const mixList = $('[data-mix-list]', main)!;
+  const renderMixes = (mixes: Mix[]) => {
+    mixList.replaceChildren(
+      ...[...mixes].reverse().map((m) => {
+        const li = document.createElement('li');
+        li.dataset.mix = m.id;
+        li.innerHTML = '<span class="dim"></span><span></span><span class="dim"></span><button type="button" class="btn-line">remove</button>';
+        li.children[0].textContent = String(m.no).padStart(3, '0');
+        li.children[1].textContent = m.title;
+        li.children[2].textContent = m.date;
+        (li.children[3] as HTMLElement).dataset.mixRemove = m.id;
+        return li;
+      }),
+    );
+  };
+  const mixForm = $<HTMLFormElement>('[data-mix-form]', main)!;
+  scope.on(mixForm, 'submit', async (e: SubmitEvent) => {
+    e.preventDefault();
+    const list = await post('/api/admin/mixes', Object.fromEntries(new FormData(mixForm)));
+    if (list) {
+      renderMixes(list);
+      mixForm.reset();
+    }
+  });
+  scope.on(mixList, 'click', async (e: MouseEvent) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-mix-remove]')?.dataset.mixRemove;
+    if (!id || !confirm('remove this mix from the archive?')) return;
+    flag('saving…');
+    const res = await fetch(`/api/admin/mixes/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      renderMixes(await res.json());
+      flag('saved', 'ok');
+    } else flag('could not remove', 'err');
   });
 
   /* ——— live ——— */
