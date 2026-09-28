@@ -16,8 +16,9 @@ const spotifyProfile = links.spotifyProfile;
 
 export const Home = ({ live, presence, spotifyConnected }: { live: LiveStatus; presence: Presence; spotifyConnected: boolean }) => (
   <>
+    {/* code rain behind the whole homepage (client/pages/home.ts) */}
+    <canvas class="rain" data-rain aria-hidden="true" />
     <section class="home-hero" data-mood="none">
-      <canvas class="mood-canvas" data-mood-canvas aria-hidden="true" />
       <div class="hero-inner">
         <h1 class="who" data-who>
           <span class="who-line">WHO IS</span>
