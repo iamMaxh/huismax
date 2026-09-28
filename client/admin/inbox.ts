@@ -63,8 +63,12 @@ export function inbox(root: HTMLElement, initial: Message[]) {
       s.busy('deleting…');
       try {
         await track(api('DELETE', `/api/admin/messages/${m.id}`));
+        const i = messages.findIndex((x) => x.id === m.id);
         messages = messages.filter((x) => x.id !== m.id);
         render();
+        // the keyboard goes to the next message (or the one before, or refresh), not back to the top of the page
+        const near = messages[i] ?? messages[i - 1];
+        (near ? list.querySelector<HTMLElement>(`[data-id="${CSS.escape(near.id)}"] .msg-actions button`) : $<HTMLElement>('[data-inbox-refresh]', root))?.focus();
         state.ok('deleted');
       } catch (e) {
         s.err((e as Error).message);

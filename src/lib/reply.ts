@@ -35,20 +35,24 @@ export function ipBucket(ip: string) {
   return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`;
 }
 
-/** Rate limit per visitor: one message a minute, 10 a day. Keyed by a hash of the IP, never the IP itself. */
+/**
+ * Rate limit per visitor: one message a minute, 10 a day. Keyed by a hash of the IP, never the IP itself.
+ * Returns why a message can't go through (the visitor sees it), or '' when it can.
+ */
 export async function allowed(env: Env, ip: string) {
-  if (!env.STATE) return true;
+  if (!env.STATE) return '';
   const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`reply:${ipBucket(ip)}`)))]
     .slice(0, 8)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
   const [recent, day] = await Promise.all([env.STATE.get(`reply:recent:${h}`), env.STATE.get(`reply:day:${h}`)]);
-  if (recent || Number(day ?? 0) >= 10) return false;
+  if (Number(day ?? 0) >= 10) return "that's 10 today. try again tomorrow";
+  if (recent) return 'one message a minute, please';
   await Promise.all([
     env.STATE.put(`reply:recent:${h}`, '1', { expirationTtl: 60 }),
     env.STATE.put(`reply:day:${h}`, String(Number(day ?? 0) + 1), { expirationTtl: 86400 }),
   ]);
-  return true;
+  return '';
 }
 
 // Site-wide caps, counted in D1 (consistent, unlike KV): the per-visitor limit can be dodged with many addresses.

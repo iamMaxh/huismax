@@ -44,6 +44,10 @@ export function coverEditor(media: boolean) {
       if (!f) return;
       busy++;
       paint();
+      // one cover at a time: a second pick (or remove) could land first and then be overwritten
+      const focused = document.activeElement === input;
+      input.disabled = del.disabled = true;
+      pick.classList.add('is-disabled');
       bar.hidden = false;
       bar.classList.add('is-busy');
       st.busy('resizing…');
@@ -64,6 +68,10 @@ export function coverEditor(media: boolean) {
         busy--;
         bar.hidden = true;
         fill.style.width = '';
+        input.disabled = !media;
+        del.disabled = false;
+        pick.classList.toggle('is-disabled', !media);
+        if (focused && document.activeElement === document.body) input.focus(); // disabling dropped the keyboard
         paint();
       }
     });

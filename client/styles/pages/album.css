@@ -53,6 +53,7 @@
 .frame-caption {
   flex-basis: 100%;
   font: 400 var(--t-sm)/1.45 var(--font-sans);
+  white-space: pre-line; /* keeps the line breaks typed in /admin */
   letter-spacing: 0;
   color: var(--fg-3);
   display: -webkit-box;
@@ -135,7 +136,7 @@
 }
 .lb-title { font: 450 26px/1.1 var(--font-sans); letter-spacing: -0.02em; color: #fff; text-transform: none; overflow-wrap: anywhere; }
 .lb-title:empty { display: none; }
-.lb-caption { font: 400 var(--t-md)/1.5 var(--font-sans); letter-spacing: 0; color: rgb(255 255 255 / 0.78); overflow-wrap: anywhere; }
+.lb-caption { font: 400 var(--t-md)/1.5 var(--font-sans); letter-spacing: 0; color: rgb(255 255 255 / 0.78); overflow-wrap: anywhere; white-space: pre-line; }
 .lb-meta dl { display: grid; gap: 10px; }
 .lb-meta dl div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgb(255 255 255 / 0.1); padding-bottom: 10px; }
 .lb-meta dd { color: #fff; text-align: right; min-width: 0; overflow-wrap: anywhere; }

@@ -105,7 +105,10 @@ export class Collection {
   replace(it: Item) {
     const i = this.items.findIndex((x) => x.id === it.id);
     if (i < 0) return;
-    this.items[i] = it;
+    const v = this.o.view;
+    // moved to another view (music section): it goes to the end there, as the server puts it
+    if (v && String(this.items[i][v.field]) !== String(it[v.field])) (this.items.splice(i, 1), this.items.push(it));
+    else this.items[i] = it;
     if (!this.sorted) this.items.sort(byNumber);
     const row = this.rows.get(it.id)!;
     this.paintRow(row, it);
@@ -269,6 +272,11 @@ export class Collection {
       f.state.clear();
       unwatch(f.el);
       this.replace(it);
+      // follow the item if it moved to another view, as adding does
+      if (this.o.view && !this.matches(it)) {
+        this.setView(String(it[this.o.view.field]));
+        this.o.onView?.(this.o.view.value);
+      }
       this.closeForm(row);
       row.state.ok();
       if (!row.li.hidden) row.toggle.focus();
@@ -297,9 +305,14 @@ export class Collection {
     row.form?.state.busy('deleting…');
     try {
       await track(api('DELETE', `${this.url}/${row.item.id}`));
+      // the keyboard goes to the next row in view (or the one before, or + add), not back to the top of the page
+      const vis = [...this.list.children].filter((el) => !(el as HTMLElement).hidden);
+      const k = vis.indexOf(row.li);
+      const near = (vis[k + 1] ?? vis[k - 1])?.querySelector<HTMLElement>('.row-text');
       this.items = this.items.filter((x) => x.id !== row.item.id);
       this.drop(row);
       this.sync();
+      (near ?? this.root.querySelector<HTMLElement>('[data-add]'))?.focus();
       this.headState.ok('deleted');
     } catch (e) {
       row.form?.state.err((e as Error).message);

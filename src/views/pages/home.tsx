@@ -39,7 +39,7 @@ function Headline({ text }: { text: string }) {
   );
 }
 
-/** A small link beside an identity: its own meta link, or (for the vibe coder) the first public project. */
+/** A small link beside an identity: its own meta link, or (for the vibe coder) the first public project with a link. */
 function sideLink(id: Item, project: Item | undefined) {
   const url = s(id.meta_url);
   if (url) return { text: s(id.meta) || url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/.*$/, ''), url };
@@ -49,7 +49,7 @@ function sideLink(id: Item, project: Item | undefined) {
 }
 
 export const Home = ({ live, presence, spotifyConnected, settings, identities, projects, now }: Props) => {
-  const project = projects[0];
+  const project = projects.find((p) => s(p.url));
   // a row never leads to a page the admin has hidden
   const rows = identities.filter((id) => isOpen(settings, s(id.href)));
   const open = (href: string) => isOpen(settings, href);
@@ -86,6 +86,10 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
               <span data-presence-status>{presence.status}</span>
             </p>
             <Listening class="presence-off" feature pending={spotifyConnected} />
+            {/* the line set by hand in /admin; CSS hides it while Spotify shows a track */}
+            <p class="presence-sub presence-off mono" data-presence-listen hidden={!presence.listening}>
+              {presence.listening ? `♪ ${presence.listening.title}${presence.listening.artist ? ` — ${presence.listening.artist}` : ''}` : ''}
+            </p>
             {settings.spotifyProfile && (
               <a class="presence-profile presence-off mono" href={settings.spotifyProfile} target="_blank" rel="noopener noreferrer">
                 spotify profile <span aria-hidden="true">↗</span>

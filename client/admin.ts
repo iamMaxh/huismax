@@ -28,7 +28,8 @@ function init(main: HTMLElement) {
       const form = target.closest?.('form:not([action])') as HTMLFormElement | null;
       if (form) form.requestSubmit();
       else status.flush();
-    } else if (e.key === 'Enter' && status.owns(target) && target.matches('.a-field')) {
+    } else if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229 && status.owns(target) && target.matches('.a-field')) {
+      // (not the Enter that picks a pinyin candidate; Safari reports that one as keyCode 229)
       status.flush();
     }
   });
@@ -83,9 +84,8 @@ function cms(main: HTMLElement, data: AdminData) {
   if (box) inbox(box, data.messages);
 
   // email status follows the "where messages go" form
-  const envDest = data.settings.replyTo ? '' : data.email.destination;
   const paintEmail = (st: Settings) => {
-    const dest = st.replyTo || envDest;
+    const dest = st.replyTo || data.email.destination; // the admin address, else REPLY_TO from Cloudflare
     const ready = data.email.resendKey && !!dest;
     const readyEl = $('[data-email-ready]', main);
     const destEl = $('[data-email-dest]', main);

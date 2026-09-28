@@ -123,6 +123,8 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
   function sync() {
     const keep = new Set(photos.map((p) => p.id));
     for (const [id, t] of tiles) if (!keep.has(id)) (t.li.remove(), tiles.delete(id));
+    // mid-drag (an upload landed) the grid keeps the order being dragged; the drop puts everything in place
+    const sorting = grid.classList.contains('is-sorting');
     let prev: HTMLElement | null = null;
     let frame = 0;
     photos.forEach((p, i) => {
@@ -133,7 +135,9 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
       t.prev.disabled = i === 0;
       t.next.disabled = i === photos.length - 1;
       const expected: Element | null = prev ? prev.nextElementSibling : grid.firstElementChild;
-      if (expected !== t.li) (prev ? prev.after(t.li) : grid.prepend(t.li));
+      if (sorting) {
+        if (!t.li.isConnected) grid.append(t.li);
+      } else if (expected !== t.li) (prev ? prev.after(t.li) : grid.prepend(t.li));
       prev = t.li;
     });
     empty.hidden = photos.length > 0;
@@ -204,7 +208,7 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
     const files = [...list];
     for (const f of files) {
       const fill = h('span', { class: 'a-bar-fill' });
-      const bar = h('span', { class: 'a-bar is-busy', role: 'progressbar', 'aria-label': `upload ${f.name}`, 'aria-valuemin': 0, 'aria-valuemax': 100 }, fill);
+      const bar = h('span', { class: 'a-bar', role: 'progressbar', 'aria-label': `upload ${f.name}`, 'aria-valuemin': 0, 'aria-valuemax': 100 }, fill);
       const st = h('span', { class: 'q-state mono dim' }, 'waiting');
       const dismiss = h('button', { type: 'button', class: 'a-btn a-btn-icon', 'aria-label': 'dismiss', hidden: true }, '×');
       const li = h('li', { class: 'q' }, h('span', { class: 'q-name' }, f.name || 'image'), st, bar, dismiss);
@@ -284,6 +288,7 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
     const fill = h('span', { class: 'a-bar-fill' });
     const bar = h('span', { class: 'a-bar', hidden: true }, fill);
     const replaceInput = h('input', { type: 'file', id: `ph-replace-${id}`, class: 'vh', accept: ACCEPT, disabled: !media });
+    const replaceLabel = h('label', { class: `a-btn${media ? '' : ' is-disabled'}`, for: replaceInput.id }, 'replace image');
     const form = h(
       'form',
       { class: 'dlg-form' },
@@ -300,7 +305,7 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
         'div',
         { class: 'f-actions dlg-more' },
         replaceInput,
-        h('label', { class: `a-btn${media ? '' : ' is-disabled'}`, for: replaceInput.id }, 'replace image'),
+        replaceLabel,
         bar,
         h('button', { type: 'button', class: 'a-btn a-btn-quiet f-end', onclick: () => remove() }, 'delete'),
       ),
@@ -310,6 +315,8 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
     watch(dlg, () => ctl.isDirty());
     form.addEventListener('input', paint);
 
+    // where the keyboard goes when the dialog closes: this photo, or its neighbour once it is deleted
+    let focusId = id;
     const close = (force = false) => {
       if (!force && ctl.isDirty() && !confirm('discard your changes to this photo?')) return;
       dlg.close();
@@ -321,7 +328,7 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
     dlg.addEventListener('close', () => {
       unwatch(dlg);
       dlg.remove();
-      tiles.get(id)?.open.focus();
+      (tiles.get(focusId)?.open ?? file).focus();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -344,6 +351,10 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
       const f = replaceInput.files?.[0];
       replaceInput.value = '';
       if (!f) return;
+      // one replacement at a time: a second pick could land first and be overwritten by the first
+      const focused = document.activeElement === replaceInput;
+      replaceInput.disabled = true;
+      replaceLabel.classList.add('is-disabled');
       bar.hidden = false;
       bar.classList.add('is-busy');
       fill.style.width = '';
@@ -367,6 +378,9 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
       } finally {
         active--;
         bar.hidden = true;
+        replaceInput.disabled = !media;
+        replaceLabel.classList.toggle('is-disabled', !media);
+        if (focused && document.activeElement === document.body) replaceInput.focus(); // disabling dropped the keyboard
         paint();
       }
     });
@@ -376,6 +390,8 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
       st.busy('deleting…');
       try {
         await track(api('DELETE', `${url}/${id}`));
+        const i = photos.findIndex((x) => x.id === id);
+        focusId = (photos[i + 1] ?? photos[i - 1])?.id ?? '';
         photos = photos.filter((x) => x.id !== id);
         sync();
         headState.ok('deleted');
@@ -386,7 +402,8 @@ export function photoManager(root: HTMLElement, album: Album, all: Item[], def: 
     };
 
     dlg.showModal();
-    ctl.focus();
+    // not on touch: focusing a field there pops the keyboard over the photo and its buttons
+    if (matchMedia('(pointer: fine)').matches) ctl.focus();
   }
 
   sync();

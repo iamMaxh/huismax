@@ -75,7 +75,7 @@ a.pick:hover, a.pick:focus-visible { padding-left: 6px; }
 .artist-link:focus-visible { outline-offset: 2px; }
 .artist-name { display: inline-block; font-size: clamp(30px, 5vw, 76px); font-weight: 450; letter-spacing: -0.05em; line-height: 1; overflow-wrap: anywhere; transition: transform var(--mid) var(--ease); }
 .artist-name .ext { font-size: 0.32em; vertical-align: 0.9em; letter-spacing: 0; }
-.artist-sub { display: block; padding-top: 6px; }
+.artist-sub { display: block; padding-top: 6px; overflow-wrap: anywhere; }
 .artist-list:hover .artist { opacity: 0.3; }
 .artist-list .artist:hover, .artist:focus-within { opacity: 1; }
 .artist:hover .artist-name { transform: translateX(10px); }

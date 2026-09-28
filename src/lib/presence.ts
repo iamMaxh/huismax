@@ -30,7 +30,8 @@ const clean = (v: unknown, n: number) => (typeof v === 'string' ? v.replace(/\s+
 
 export async function setPresence(env: Env, input: Record<string, unknown>): Promise<Presence> {
   if (!env.STATE) throw new Error('STATE KV namespace is not bound');
-  const prev = await getPresence(env);
+  // a fresh read (no cacheTtl): merging onto a cached copy could bring back a status changed seconds ago
+  const prev: Presence = { ...DEFAULT, ...(await env.STATE.get<Partial<Presence>>(KEY, 'json')) };
   const next: Presence = { ...prev, updatedAt: new Date().toISOString() };
   if ('status' in input) next.status = clean(input.status, 48);
   if ('listening' in input) {

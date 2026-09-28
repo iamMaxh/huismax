@@ -160,7 +160,8 @@ app.post('/api/reply', async (c) => {
   } catch (e) {
     return c.json({ error: (e as Error).message }, 400);
   }
-  if (!(await allowed(c.env, c.req.header('CF-Connecting-IP') ?? 'local'))) return c.json({ error: 'one message a minute, please' }, 429);
+  const limited = await allowed(c.env, c.req.header('CF-Connecting-IP') ?? 'local');
+  if (limited) return c.json({ error: limited }, 429);
   if (!(await underCap(c.env))) return c.json({ error: 'too many messages right now. try again later' }, 429);
   const saved = await saveMessage(c.env, m);
   c.executionCtx.waitUntil(emailMessage(c.env, s, saved));
@@ -220,8 +221,10 @@ app.post('/admin/login', async (c) => {
     await c.env.STATE?.put(rateKey, String(fails + 1), { expirationTtl: 300 });
     return c.html(<AdminLogin error="wrong password." />, 401);
   }
+  // Lax, not Strict: coming back from Spotify is a navigation another site starts, and Strict would sign Max out.
+  // Writes stay safe: Lax is never sent on a cross-site POST or fetch, and every write also checks sameOrigin().
   setCookie(c, COOKIE, await sessionValue(c.env), {
-    path: '/', httpOnly: true, secure: new URL(c.req.url).protocol === 'https:', sameSite: 'Strict', maxAge: 60 * 60 * 24 * 30,
+    path: '/', httpOnly: true, secure: new URL(c.req.url).protocol === 'https:', sameSite: 'Lax', maxAge: 60 * 60 * 24 * 30,
   });
   return c.redirect('/admin', 303);
 });

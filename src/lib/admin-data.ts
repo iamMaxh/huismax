@@ -1,6 +1,6 @@
 import type { Env } from './env';
 import * as cms from './cms';
-import { destination, emailReady, listMessages, type Message } from './reply';
+import { emailReady, listMessages, type Message } from './reply';
 
 /** Everything /admin renders with, in one load. Includes private settings: never send this to a public page. */
 export type AdminData = {
@@ -11,6 +11,7 @@ export type AdminData = {
   messages: Message[];
   /** R2 bound (photo uploads possible) */
   media: boolean;
+  /** destination: the REPLY_TO fallback from Cloudflare, used when the admin address (settings.replyTo) is empty */
   email: { resendKey: boolean; destination: string; ready: boolean };
 };
 
@@ -30,6 +31,6 @@ export async function adminData(env: Env): Promise<AdminData> {
     defs,
     messages,
     media: !!env.MEDIA,
-    email: { resendKey: !!env.RESEND_API_KEY, destination: destination(env, settings), ready: emailReady(env, settings) },
+    email: { resendKey: !!env.RESEND_API_KEY, destination: env.REPLY_TO ?? '', ready: emailReady(env, settings) },
   };
 }

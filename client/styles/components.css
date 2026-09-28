@@ -50,8 +50,11 @@
 }
 @keyframes doing { from { transform: scale(1); opacity: 0.4; } to { transform: scale(3); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .doing-dot::after { animation: none; opacity: 0; } }
-/* no status, no dot */
+/* no status, no dot, and no empty "right now" row (index, /now) */
 :has(> .doing-dot + [data-presence-status]:empty) > .doing-dot { display: none; }
+:is(li, .now-item):has(> [data-presence-status]:empty) { display: none; }
+/* a status can be one long word (a link): it wraps instead of widening the page */
+[data-presence-status] { overflow-wrap: anywhere; }
 .live-mark-xl .live-dot { width: 10px; height: 10px; }
 
 /* ——— page head ——— */

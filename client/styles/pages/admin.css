@@ -33,6 +33,9 @@
 @keyframes row-in { from { background: var(--bg-3); } }
 @keyframes bar-busy { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 
+/* a field reached with Tab / the iPhone's field arrows scrolls clear of the sticky header */
+html:has(body.admin) { scroll-padding-top: 112px; }
+
 body.admin {
   min-height: 100dvh;
 
@@ -73,6 +76,11 @@ body.admin {
   .admin-nav a:hover { color: var(--fg); }
   .admin-nav a[aria-current] { background: var(--fg); color: var(--bg); }
   .nav-badge { margin-left: 4px; font-size: 9px; }
+  @media (pointer: coarse) {
+    .admin-nav a { height: 40px; }
+    .sec-link { display: inline-flex; align-items: center; min-height: 40px; }
+    .admin-mark { display: inline-block; padding-block: 10px; } /* not flex: that would eat the space in "huismax / admin" */
+  }
 
   .admin-main { padding-top: 32px; padding-bottom: 96px; }
   .admin-warn { padding: 14px 16px; border: 1px solid var(--line-2); border-radius: 8px; }
@@ -200,6 +208,10 @@ body.admin {
     background-size: 5px 5px;
     background-repeat: no-repeat;
   }
+  /* iOS Safari zooms the page into any field under 16px */
+  @media (pointer: coarse) {
+    .a-field, textarea.a-field, .login-form input { font-size: 16px; }
+  }
   .a-field-date { max-width: 220px; }
   .a-field-num { max-width: 160px; }
   .f-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -233,6 +245,7 @@ body.admin {
     transition: color var(--fast);
   }
   .row-handle i { display: block; width: 12px; height: 1px; background: currentColor; }
+  @media (pointer: coarse) { .row-handle { width: 40px; } }
   .row-handle:hover { color: var(--fg); }
   .row-thumb { flex: none; width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: var(--bg-3); }
   .row-text { flex: 1 1 auto; min-width: 0; display: grid; gap: 3px; padding: 8px 0; text-align: left; }
@@ -382,7 +395,7 @@ body.admin {
   .msg-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
   .msg-dot { align-self: center; flex: none; width: 7px; height: 7px; border: 1px solid var(--line-2); border-radius: 50%; }
   .msg.is-unread .msg-dot { background: var(--fg); border-color: var(--fg); }
-  .msg-from { font-weight: 500; }
+  .msg-from { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
   .msg-email { overflow-wrap: anywhere; }
   .msg-time { margin-left: auto; }
   .msg-body { max-width: 72ch; color: var(--fg-2); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -392,6 +405,7 @@ body.admin {
   /* ——— status (kept from the first admin) ——— */
   .preview { padding: 32px 24px; }
   .preview-state { font: 450 clamp(32px, 5vw, 56px)/1 var(--font-sans); letter-spacing: -0.045em; overflow-wrap: anywhere; }
+  .preview-state .doing-dot { width: 10px; height: 10px; margin-right: 14px; vertical-align: 0.2em; } /* the homepage's dot, sized for this text */
   .preview-sub { margin-top: 12px; color: var(--fg-3); min-height: 1.4em; }
   .preview-body[data-live='on'] .preview-state { color: var(--live); font-family: var(--font-mono); font-size: clamp(24px, 3vw, 32px); letter-spacing: 0.06em; }
 
@@ -461,6 +475,8 @@ body.admin {
 
   /* ——— small screens ——— */
   @media (max-width: 640px) {
+    /* errors are the only feedback for the status saves: let them wrap instead of cutting off */
+    [data-save-state] { white-space: normal; line-height: 1.2; }
     .admin-main { padding-top: 20px; }
     .panel { padding: 16px; gap: 16px; }
     .preview { padding: 24px 16px; }

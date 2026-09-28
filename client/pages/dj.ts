@@ -42,8 +42,12 @@ export const initDJ: PageInit = (main, scope) => {
       for (const b of $$<HTMLButtonElement>('[data-play-mix]', main)) {
         const mine = ps.source?.id === b.dataset.playMix;
         const playing = mine && ps.status === 'playing';
-        if (b.classList.contains('mix-play')) b.textContent = playing ? '❚❚' : '▶';
-        else $('[data-latest-label]', b)!.textContent = playing ? 'pause' : mine ? 'resume' : 'play';
+        if (b.classList.contains('mix-play')) {
+          b.textContent = playing ? '❚❚' : '▶';
+          // the label is what a screen reader says; buttons without audio keep their "no audio yet"
+          const m = mixes.find((x) => x.id === b.dataset.playMix);
+          if (m?.audioUrl) b.setAttribute('aria-label', `${playing ? 'pause' : 'play'} ${m.title}`);
+        } else $('[data-latest-label]', b)!.textContent = playing ? 'pause' : mine && ps.status !== 'error' ? 'resume' : 'play';
       }
       if (ps.message && ps.source?.kind === 'live') title.textContent = ps.message;
     }) as () => void,
@@ -55,7 +59,8 @@ export const initDJ: PageInit = (main, scope) => {
     const mix = mixes.find((m) => m.id === b.dataset.playMix);
     if (!mix?.audioUrl) return;
     const ps = player.state();
-    if (ps.source?.id === mix.id) player.toggle();
+    // after an error, pressing again reloads the mix instead of toggling the failed one
+    if (ps.source?.id === mix.id && ps.status !== 'error') player.toggle();
     else player.play({ kind: 'mix', id: mix.id, title: `${mix.no} — ${mix.title}`, url: mix.audioUrl });
   });
 

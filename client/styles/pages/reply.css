@@ -21,6 +21,8 @@
   transition: border-color var(--fast);
 }
 .reply-form textarea { resize: vertical; min-height: 9.5em; font-size: var(--t-md); line-height: 1.55; letter-spacing: 0; }
+/* iOS Safari zooms the page into any field under 16px */
+@media (pointer: coarse) { .reply-form textarea { font-size: 16px; } }
 .reply-form :is(input, textarea):focus { border-color: var(--fg); }
 .reply-form :is(input, textarea):disabled { color: var(--fg-2); }
 .reply-count { justify-self: end; padding-top: 8px; font-variant-numeric: tabular-nums; }

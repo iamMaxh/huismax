@@ -30,6 +30,8 @@ export function initStatus(main: HTMLElement, init: { live: Live; presence: Pres
     const manual = presence.listening ? `♪ ${presence.listening.title}${presence.listening.artist ? ` — ${presence.listening.artist}` : ''}` : '';
     $('[data-preview]', main)!.dataset.live = live.isLive ? 'on' : 'off';
     $('[data-preview-state]', main)!.textContent = live.isLive ? '● LIVE' : presence.status || '—';
+    // the homepage's breathing "doing this now" dot; LIVE has its own, and no status means no dot
+    $('[data-preview-dot]', main)!.hidden = live.isLive || !presence.status;
     $('[data-preview-sub]', main)!.textContent = live.isLive ? 'huismax dj channel' : spotifyLine || manual;
     for (const c of chips) c.setAttribute('aria-checked', String(c.dataset.preset === presence.status));
     liveSwitch.setAttribute('aria-checked', String(live.isLive));
@@ -38,27 +40,52 @@ export function initStatus(main: HTMLElement, init: { live: Live; presence: Pres
   };
 
   /* ——— saving: debounced per kind, flushed on ⌘↵ / Enter / leaving ——— */
-  const post = (url: string, body: unknown) => track(api('POST', url, body)).catch(() => {});
+  const post = <T,>(url: string, body: unknown) => track(api<T>('POST', url, body));
+  const saved = { isLive: init.live.isLive };
   const savers = {
-    status: () => post('/api/admin/presence', { status: state.presence.status }),
-    listening: () => post('/api/admin/presence', { listening: state.presence.listening }),
-    live: () => post('/api/live-status', { isLive: state.live.isLive, sessionTitle: liveTitle.value, streamUrl: liveUrl.value }),
+    // the whole presence every time, so a status save and a track save can't undo each other on the server
+    presence: () => post<Presence>('/api/admin/presence', { status: state.presence.status, listening: state.presence.listening }),
+    live: async () => {
+      try {
+        saved.isLive = (await post<Live>('/api/live-status', { isLive: state.live.isLive, sessionTitle: liveTitle.value, streamUrl: liveUrl.value })).isLive;
+      } catch (e) {
+        // the switch goes back to what the site shows; the header says why
+        state.live.isLive = saved.isLive;
+        paint();
+        throw e;
+      }
+    },
   };
   type Key = keyof typeof savers;
   const timers = new Map<Key, number>();
+  // a failed save stays "unsaved edits" (and leaving warns) until one of its kind goes through
+  const failed = new Set<Key>();
+  // one request at a time, each sending the latest state, so an older save can never land after a newer one
+  let queue = Promise.resolve();
+  const run = (key: Key) => {
+    queue = queue.then(() => savers[key]().then(() => failed.delete(key), () => failed.add(key))).then(paintSave);
+  };
   const later = (key: Key, ms = 650) => {
     clearTimeout(timers.get(key));
-    timers.set(key, window.setTimeout(() => (timers.delete(key), savers[key]()), ms));
+    timers.set(key, window.setTimeout(() => (timers.delete(key), run(key)), ms));
     paintSave();
   };
   const flush = () => {
-    for (const [key, id] of timers) {
-      clearTimeout(id);
-      timers.delete(key);
-      savers[key]();
-    }
+    const keys = new Set([...timers.keys(), ...failed]); // failed ones get another try
+    for (const id of timers.values()) clearTimeout(id);
+    timers.clear();
+    for (const key of keys) run(key);
   };
-  watch(timers, () => timers.size > 0);
+  watch(timers, () => timers.size > 0 || failed.size > 0);
+  addEventListener('online', flush);
+
+  // IME (pinyin): nothing counts until the word is committed. Chrome sends the last input while still composing,
+  // Safari before compositionend, so both events run the handler.
+  const typed = (el: HTMLInputElement, fn: () => void) => {
+    const on = (e: Event) => (e as InputEvent).isComposing || fn();
+    el.addEventListener('input', on);
+    el.addEventListener('compositionend', on);
+  };
 
   /* ——— status ——— */
   main.addEventListener('click', (e) => {
@@ -66,17 +93,17 @@ export function initStatus(main: HTMLElement, init: { live: Live; presence: Pres
     if (!chip) return;
     state.presence.status = statusInput.value = chip.dataset.preset!;
     paint();
-    later('status', 0);
+    later('presence', 0);
   });
-  statusInput.addEventListener('input', () => {
+  typed(statusInput, () => {
     state.presence.status = statusInput.value.trim();
     paint();
-    later('status');
+    later('presence');
   });
   $('[data-status-clear]', main)!.addEventListener('click', () => {
     state.presence.status = statusInput.value = '';
     paint();
-    later('status', 0);
+    later('presence', 0);
     statusInput.focus();
   });
   // arrow keys move between presets like a radio group
@@ -93,14 +120,14 @@ export function initStatus(main: HTMLElement, init: { live: Live; presence: Pres
     const title = trackInput.value.trim();
     state.presence.listening = title ? { title, artist: artistInput.value.trim() } : null;
     paint();
-    later('listening');
+    later('presence');
   };
-  trackInput.addEventListener('input', onListen);
-  artistInput.addEventListener('input', onListen);
+  typed(trackInput, onListen);
+  typed(artistInput, onListen);
   $('[data-listen-clear]', main)!.addEventListener('click', () => {
     trackInput.value = artistInput.value = '';
     onListen();
-    later('listening', 0);
+    later('presence', 0);
     trackInput.focus();
   });
 
@@ -146,7 +173,7 @@ export function initStatus(main: HTMLElement, init: { live: Live; presence: Pres
     paint();
     later('live', 0);
   });
-  for (const input of [liveTitle, liveUrl]) input.addEventListener('input', () => later('live', 900));
+  for (const input of [liveTitle, liveUrl]) typed(input, () => later('live', 900));
 
   paint();
   return { flush, owns: (el: Element) => !!el.closest('[data-section="status"]') };

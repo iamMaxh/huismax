@@ -146,6 +146,11 @@ const isHttp = (v: string) => {
 };
 export const EMAIL = /^[^\s@<>"]{1,64}@[^\s@<>"]{1,190}\.[a-z]{2,}$/i;
 const isSitePath = (v: string) => /^\/(?!\/)[\w\-./#?=&%]*$/.test(v);
+/** A day that exists: 2026-02-31 and 2026-13-01 match the shape but not the calendar. */
+const realDate = (v: string) => {
+  const t = Date.parse(`${v}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+};
 
 function clean(f: Field, raw: unknown): string | number {
   if (f.type === 'int' || f.type === 'real') {
@@ -168,7 +173,7 @@ function clean(f: Field, raw: unknown): string | number {
   }
   if (f.type === 'url' && !isHttp(v)) throw new InputError(`${f.label} must start with https://`);
   if (f.type === 'link' && !isHttp(v) && !isSitePath(v)) throw new InputError(`${f.label} must be a /path or an https:// link`);
-  if (f.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new InputError(`${f.label} must be YYYY-MM-DD`);
+  if (f.type === 'date' && (!/^\d{4}-\d{2}-\d{2}$/.test(v) || !realDate(v))) throw new InputError(`${f.label} must be a real date (YYYY-MM-DD)`);
   if (f.type === 'enum' && !f.options!.includes(v)) throw new InputError(`${f.label} must be one of ${f.options!.join(', ')}`);
   return v;
 }
@@ -206,12 +211,20 @@ export async function get(env: Env, name: CollectionName, id: string): Promise<I
   return env.DB!.prepare(`SELECT * FROM ${def.table} WHERE id = ?`).bind(id).first<Item>();
 }
 
+/** Sessions are known by their number (/dj archive, admin rows), so two can't share one. */
+async function uniqueNumber(env: Env, values: Record<string, string | number>, id: string) {
+  if (!values.number) return;
+  const dup = await env.DB!.prepare('SELECT title FROM dj_sessions WHERE number = ? AND id != ?').bind(values.number, id).first<{ title: string }>();
+  if (dup) throw new InputError(`no. ${values.number} is already used by “${dup.title}”`);
+}
+
 /** Creates an item; `extra` carries server-owned columns (e.g. photo keys) that never come from the form. */
 export async function create(env: Env, name: CollectionName, input: Record<string, unknown>, extra: Record<string, string | number> = {}) {
   const def: CollectionDef = COLLECTIONS[name];
   const values = { ...validate(def, input, true), ...extra };
   if (!(def.flag in values)) values[def.flag] = def.flagDefault;
   const db = env.DB!;
+  if (name === 'dj') await uniqueNumber(env, values, '');
   if (name === 'dj' && !values.number) {
     const row = await db.prepare('SELECT COALESCE(MAX(number), 0) + 1 AS n FROM dj_sessions').first<{ n: number }>();
     values.number = row?.n ?? 1;
@@ -228,10 +241,26 @@ export async function create(env: Env, name: CollectionName, input: Record<strin
 export async function update(env: Env, name: CollectionName, id: string, input: Record<string, unknown>, extra: Record<string, string | number> = {}) {
   const def: CollectionDef = COLLECTIONS[name];
   const values: Record<string, string | number> = { ...validate(def, input, false), ...extra };
-  if (name === 'dj' && 'number' in values && !values.number) delete values.number;
+  const db = env.DB!;
+  if (name === 'dj' && 'number' in values) {
+    if (values.number) await uniqueNumber(env, values, id);
+    else {
+      // "empty = next number", as when adding (this session itself not counted)
+      const row = await db.prepare('SELECT COALESCE(MAX(number), 0) + 1 AS n FROM dj_sessions WHERE id != ?').bind(id).first<{ n: number }>();
+      values.number = row?.n ?? 1;
+    }
+  }
+  if (name === 'music' && 'kind' in values) {
+    // moved to another section: to the end of it, like a new item
+    const cur = await get(env, name, id);
+    if (cur && cur.kind !== values.kind) {
+      const row = await db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM music_items').first<{ n: number }>();
+      values.sort_order = row?.n ?? 1;
+    }
+  }
   const cols = Object.keys(values);
   if (!cols.length) return get(env, name, id);
-  const res = await env.DB!.prepare(`UPDATE ${def.table} SET ${cols.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE id = ?`)
+  const res = await db.prepare(`UPDATE ${def.table} SET ${cols.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE id = ?`)
     .bind(...cols.map((c) => values[c]), now(), id)
     .run();
   if (!res.meta.changes) return null;

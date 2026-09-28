@@ -2,7 +2,7 @@ import type { Env } from './env';
 
 export type LiveStatus = {
   isLive: boolean;
-  label: 'LIVE' | 'OFF AIR';
+  label: 'LIVE' | '';
   streamUrl: string | null;
   sessionTitle: string | null;
   startedAt: string | null;
@@ -26,7 +26,7 @@ export async function getLiveStatus(env: Env, mock?: string | null): Promise<Liv
   const isLive = Boolean(src.isLive);
   return {
     isLive,
-    label: isLive ? 'LIVE' : 'OFF AIR',
+    label: isLive ? 'LIVE' : '', // never "off air" anywhere public, data included
     streamUrl: src.streamUrl || null,
     sessionTitle: src.sessionTitle || null,
     startedAt: isLive ? src.startedAt || null : null,

@@ -41,6 +41,8 @@ export const AdminLogin = ({ error }: { error?: string }) => (
         <button type="submit" class="a-btn a-btn-solid a-btn-lg">enter →</button>
         {error && <p class="mono login-error" role="alert">{error}</p>}
       </form>
+      {/* keep a deep link (/admin#dj): the fragment rides through the 303 back to /admin */}
+      <script>{raw("document.querySelector('.login-form').action+=location.hash")}</script>
     </main>
   </Shell>
 );
@@ -229,7 +231,10 @@ export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: Li
           <section class="panel preview" data-prox aria-label="homepage preview">
             <span class="panel-label mono">on the homepage now</span>
             <div class="preview-body" data-preview>
-              <p class="preview-state" data-preview-state />
+              <p class="preview-state">
+                <span class="doing-dot" aria-hidden="true" data-preview-dot hidden={live.isLive || !presence.status} />
+                <span data-preview-state />
+              </p>
               <p class="preview-sub mono" data-preview-sub />
             </div>
           </section>
@@ -277,7 +282,7 @@ export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: Li
                 <p class="mono dim" data-spotify-meta />
               </div>
             </div>
-            {spotify.notice && <p class={`mono ${spotify.notice === 'connected' ? '' : 'save-err'}`}>{spotifyNotice[spotify.notice] ?? spotify.notice}</p>}
+            {spotify.notice && <p class={`mono ${spotify.notice === 'connected' ? '' : 'save-err'}`}>{Object.hasOwn(spotifyNotice, spotify.notice) ? spotifyNotice[spotify.notice] : 'could not connect.'}</p>}
             {!spotify.configured && (
               <p class="mono save-err">
                 this worker can't see: {spotify.setup.missing.join(', ')}.
@@ -320,7 +325,7 @@ export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: Li
               <input class="a-field" type="text" maxlength={120} placeholder="session title" value={live.sessionTitle ?? ''} data-live-title aria-label="session title" />
               <input class="a-field a-field-wide" type="url" maxlength={300} placeholder="stream url (https://…)" value={live.streamUrl ?? ''} data-live-url aria-label="stream url" />
             </div>
-            <p class="mono dim">going live replaces your status on the site. it comes back when you end the session.</p>
+            <p class="mono dim">going live replaces your status at the top of the homepage. it comes back when you end the session.</p>
           </section>
           <p class="admin-foot mono dim">
             <kbd>⌘</kbd> <kbd>↵</kbd> save · status saves on its own
