@@ -365,16 +365,25 @@ export async function getSettings(env: Env): Promise<Settings> {
   return s;
 }
 
-/** Saves the given settings (merging maps with what is stored) and returns the full result. */
+const UPSERT = 'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET updated_at = excluded.updated_at, value = ';
+
+/**
+ * Saves the given settings and returns the full result. Maps (nav, pages, intros) are merged inside D1 with
+ * json_patch, so two switches flipped a moment apart can't overwrite each other.
+ */
 export async function saveSettings(env: Env, input: Record<string, unknown>): Promise<Settings> {
-  const current = await getSettings(env);
   const next = validateSettings(input);
   const db = env.DB!;
   const ts = now();
-  const stmts = Object.entries(next).map(([k, v]) => {
-    const merged = v && typeof v === 'object' ? { ...(current[k as keyof Settings] as object), ...v } : v;
-    return db.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at').bind(k, JSON.stringify(merged), ts);
-  });
+  const stmts = Object.entries(next).map(([k, v]) =>
+    db
+      .prepare(
+        v && typeof v === 'object'
+          ? `${UPSERT}CASE WHEN json_valid(settings.value) THEN json_patch(settings.value, excluded.value) ELSE excluded.value END`
+          : `${UPSERT}excluded.value`,
+      )
+      .bind(k, JSON.stringify(v), ts),
+  );
   if (stmts.length) await db.batch(stmts);
   return getSettings(env);
 }

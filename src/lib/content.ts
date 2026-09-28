@@ -16,10 +16,19 @@ async function safe<T>(what: string, fallback: T, load: () => Promise<T>): Promi
   }
 }
 
+// Last settings read in this isolate. If D1 hiccups, pages keep what the admin set (e.g. a hidden page stays
+// hidden) instead of falling back to the defaults, where everything is visible.
+let lastSettings: Settings | null = null;
+
 export async function settings(env: Env): Promise<Settings> {
   await ensureDb(env);
   if (!env.DB) return structuredClone(SETTINGS_DEFAULTS);
-  return safe('settings', structuredClone(SETTINGS_DEFAULTS), () => getSettings(env));
+  try {
+    lastSettings = await getSettings(env);
+  } catch (e) {
+    console.error('content: settings', (e as Error).message);
+  }
+  return structuredClone(lastSettings ?? SETTINGS_DEFAULTS);
 }
 
 /** Published / visible items of a collection, in display order. */
@@ -35,6 +44,13 @@ export type Site = { settings: Settings; links: Item[] };
 export async function site(env: Env): Promise<Site> {
   const [s, links] = await Promise.all([settings(env), items(env, 'links')]);
   return { settings: s, links };
+}
+
+/** Homepage identities; the fallback list when D1 is missing or failing, so the homepage never renders empty. */
+export async function identities(env: Env): Promise<Item[]> {
+  await ensureDb(env);
+  if (!env.DB) return FALLBACK_IDENTITIES;
+  return safe('identities', FALLBACK_IDENTITIES, () => list(env, 'identities', { onlyPublic: true }));
 }
 
 /** Fallback identities when D1 is unreachable, so the homepage never renders empty. */

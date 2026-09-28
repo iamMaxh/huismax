@@ -45,7 +45,7 @@ export const initHome: PageInit = (main, scope) => {
 
   // ↑/↓ between identities, 1–9 to jump.
   scope.on(document, 'keydown', (e: KeyboardEvent) => {
-    if ((e.target as HTMLElement).closest('input, textarea, dialog[open]')) return;
+    if (!links.length || (e.target as HTMLElement).closest('input, textarea, dialog[open]')) return;
     const i = links.indexOf(document.activeElement as HTMLAnchorElement);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       if (i < 0 && e.key === 'ArrowUp') return;

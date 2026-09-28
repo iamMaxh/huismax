@@ -1,6 +1,5 @@
 import type { Env } from './env';
 import m0001 from '../../migrations/0001_cms.sql';
-import { newId } from './cms';
 
 /**
  * D1 schema + first content, applied by the worker itself: the site deploys from a git push, so nobody runs
@@ -9,16 +8,21 @@ import { newId } from './cms';
  */
 const MIGRATIONS: [name: string, sql: string][] = [['0001_cms.sql', m0001]];
 
-let ready: Promise<void> | null = null;
+let done = false;
 
-/** Resolves once the schema and seed are in place (once per isolate). Never throws: callers fall back. */
-export function ensureDb(env: Env): Promise<void> {
-  if (!env.DB) return Promise.resolve();
-  ready ??= migrate(env).catch((e) => {
-    ready = null; // try again on the next request
+/**
+ * Resolves once the schema and seed are in place. Never throws: callers fall back.
+ * Only a finished run is remembered: sharing one in-flight promise across requests could leave them all
+ * waiting if the request that started it is cancelled. Concurrent cold-start runs are harmless (idempotent).
+ */
+export async function ensureDb(env: Env): Promise<void> {
+  if (!env.DB || done) return;
+  try {
+    await migrate(env);
+    done = true;
+  } catch (e) {
     console.error('d1 migrate', (e as Error).message);
-  });
-  return ready;
+  }
 }
 
 const statements = (sql: string) =>
@@ -93,8 +97,15 @@ async function seed(env: Env) {
 async function importKvMixes(env: Env, ts: string): Promise<D1PreparedStatement[]> {
   if (!env.STATE) return [];
   type KvMix = { id: string; no: number; title: string; url: string; date: string };
-  const stored = await env.STATE.get<KvMix[]>('mixes', 'json').catch(() => null);
-  const mixes = Array.isArray(stored) ? stored : [];
+  // a KV error throws, so the seed runs again on the next request instead of skipping the archive for good
+  const raw = await env.STATE.get('mixes');
+  let stored: unknown = null;
+  try {
+    stored = JSON.parse(raw ?? 'null');
+  } catch {
+    /* not JSON: nothing to import */
+  }
+  const mixes = Array.isArray(stored) ? (stored as KvMix[]) : [];
   const db = env.DB!;
   return mixes
     .filter((m) => m && typeof m.title === 'string')
@@ -103,6 +114,6 @@ async function importKvMixes(env: Env, ts: string): Promise<D1PreparedStatement[
         .prepare(
           'INSERT OR IGNORE INTO dj_sessions (id, number, title, date, audio_url, sort_order, published, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)',
         )
-        .bind(`kv-${m.id || newId()}`, Number(m.no) || i + 1, m.title.slice(0, 120), /^\d{4}-\d{2}-\d{2}$/.test(m.date) ? m.date : '', /^https?:\/\//.test(m.url) ? m.url : '', i + 1, ts, ts),
+        .bind(`kv-${m.id || i + 1}`, Number(m.no) || i + 1, m.title.slice(0, 120), /^\d{4}-\d{2}-\d{2}$/.test(m.date) ? m.date : '', /^https?:\/\//.test(m.url) ? m.url : '', i + 1, ts, ts),
     );
 }

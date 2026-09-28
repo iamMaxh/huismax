@@ -9,7 +9,7 @@ import { Admin, AdminLogin } from './views/admin';
 import { authorizeUrl, configured, connectedAs, disconnect, handleCallback, nowPlaying, recent, setupHints } from './lib/spotify';
 import { ensureDb } from './lib/db';
 import * as cms from './lib/cms';
-import { FALLBACK_IDENTITIES, items, photos, sessions, settings, site, type Site } from './lib/content';
+import { identities, items, photos, sessions, settings, site, type Site } from './lib/content';
 import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, validKey } from './lib/media';
 import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
 import { adminData, type AdminData } from './lib/admin-data';
@@ -67,10 +67,10 @@ const intro = (s: Site, k: cms.PageKeyCms) => s.settings.intros[k];
 /* ——— pages ——— */
 
 app.get('/', async (c) => {
-  const [presence, spotifyUser, identities, projects, now] = await Promise.all([
+  const [presence, spotifyUser, rows, projects, now] = await Promise.all([
     getPresence(c.env),
     configured(c.env) ? connectedAs(c.env) : null,
-    items(c.env, 'identities'),
+    identities(c.env),
     items(c.env, 'projects'),
     items(c.env, 'now'),
   ]);
@@ -80,7 +80,7 @@ app.get('/', async (c) => {
       presence={presence}
       spotifyConnected={!!spotifyUser}
       settings={s.settings}
-      identities={c.env.DB ? identities : FALLBACK_IDENTITIES}
+      identities={rows}
       projects={projects}
       now={now}
     />
@@ -366,13 +366,16 @@ app.post('/api/admin/photos', async (c) => {
     const prefix = fields.album === 'hiking' ? 'photos/hiking' : 'photos/photography';
     const image = await readImage(form.image, LIMITS.image, 'image');
     const thumb = form.thumb ? await readImage(form.thumb, LIMITS.thumb, 'thumbnail') : null;
-    const image_key = await putImage(c.env, prefix, id, image);
-    const thumb_key = thumb ? await putImage(c.env, prefix, id, thumb, '-t') : '';
+    const written: string[] = [];
     try {
+      const image_key = await putImage(c.env, prefix, id, image);
+      written.push(image_key);
+      const thumb_key = thumb ? await putImage(c.env, prefix, id, thumb, '-t') : '';
+      written.push(thumb_key);
       const item = await cms.create(c.env, 'photos', form, { image_key, thumb_key, width: dim(form.width), height: dim(form.height), published: form.published === '1' ? 1 : 0 });
       return c.json(item, 201);
     } catch (e) {
-      await deleteKeys(c.env, [image_key, thumb_key]);
+      await deleteKeys(c.env, written); // no orphan files when any step fails
       throw e;
     }
   } catch (e) {
@@ -392,9 +395,23 @@ app.put('/api/admin/photos/:id/image', async (c) => {
     const prefix = old.album === 'hiking' ? 'photos/hiking' : 'photos/photography';
     const image = await readImage(form.image, LIMITS.image, 'image');
     const thumb = form.thumb ? await readImage(form.thumb, LIMITS.thumb, 'thumbnail') : null;
-    const image_key = await putImage(c.env, prefix, old.id, image);
-    const thumb_key = thumb ? await putImage(c.env, prefix, old.id, thumb, '-t') : '';
-    const item = await cms.update(c.env, 'photos', old.id, {}, { image_key, thumb_key, width: dim(form.width), height: dim(form.height) });
+    const written: string[] = [];
+    let item;
+    try {
+      const image_key = await putImage(c.env, prefix, old.id, image);
+      written.push(image_key);
+      const thumb_key = thumb ? await putImage(c.env, prefix, old.id, thumb, '-t') : '';
+      written.push(thumb_key);
+      item = await cms.update(c.env, 'photos', old.id, {}, { image_key, thumb_key, width: dim(form.width), height: dim(form.height) });
+    } catch (e) {
+      await deleteKeys(c.env, written);
+      throw e;
+    }
+    if (!item) {
+      // deleted while uploading
+      await deleteKeys(c.env, written);
+      return c.json({ error: 'not found' }, 404);
+    }
     c.executionCtx.waitUntil(deleteKeys(c.env, [old.image_key, old.thumb_key]).catch((e) => console.error('r2 delete', e)));
     return c.json(item);
   } catch (e) {
@@ -413,7 +430,14 @@ app.put('/api/admin/dj/:id/cover', async (c) => {
     const form = await c.req.parseBody();
     const image = await readImage(form.image, LIMITS.thumb, 'cover');
     const cover_key = await putImage(c.env, 'covers', old.id, image);
-    const item = await cms.update(c.env, 'dj', old.id, {}, { cover_key });
+    const item = await cms.update(c.env, 'dj', old.id, {}, { cover_key }).catch(async (e) => {
+      await deleteKeys(c.env, [cover_key]);
+      throw e;
+    });
+    if (!item) {
+      await deleteKeys(c.env, [cover_key]);
+      return c.json({ error: 'not found' }, 404);
+    }
     c.executionCtx.waitUntil(deleteKeys(c.env, [old.cover_key]).catch((e) => console.error('r2 delete', e)));
     return c.json(item);
   } catch (e) {
@@ -427,6 +451,7 @@ app.delete('/api/admin/dj/:id/cover', async (c) => {
   const old = await cms.get(c.env, 'dj', c.req.param('id'));
   if (!old) return c.json({ error: 'not found' }, 404);
   const item = await cms.update(c.env, 'dj', old.id, {}, { cover_key: '' });
+  if (!item) return c.json({ error: 'not found' }, 404);
   c.executionCtx.waitUntil(deleteKeys(c.env, [old.cover_key]).catch((e) => console.error('r2 delete', e)));
   return c.json(item);
 });
