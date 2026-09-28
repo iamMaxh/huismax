@@ -36,7 +36,26 @@ const K = { refresh: 'spotify:refresh', access: 'spotify:access', user: 'spotify
 const accountsBase = (env: Env) => env.SPOTIFY_ACCOUNTS_BASE || 'https://accounts.spotify.com';
 const apiBase = (env: Env) => env.SPOTIFY_API_BASE || 'https://api.spotify.com';
 
-export const configured = (env: Env) => !!(env.SPOTIFY_CLIENT_ID && env.SPOTIFY_CLIENT_SECRET && env.STATE);
+// Trimmed: values pasted from the Spotify dashboard often carry a stray space or newline.
+const clientId = (env: Env) => env.SPOTIFY_CLIENT_ID?.trim() ?? '';
+const clientSecret = (env: Env) => env.SPOTIFY_CLIENT_SECRET?.trim() ?? '';
+
+export const configured = (env: Env) => !!(clientId(env) && clientSecret(env) && env.STATE);
+
+const REQUIRED = ['SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET'] as const;
+
+/**
+ * Admin-only setup hints, by variable NAME (values are never read out): which required names are
+ * missing, and which similarly named variables exist instead (e.g. a typo or lowercase name).
+ */
+export function setupHints(env: Env) {
+  const vars = env as unknown as Record<string, unknown>;
+  const missing = REQUIRED.filter((k) => typeof vars[k] !== 'string' || !(vars[k] as string).trim());
+  const similar = Object.keys(vars).filter(
+    (k) => /spotify|client.?(id|secret)/i.test(k) && !(REQUIRED as readonly string[]).includes(k) && !/^SPOTIFY_(ACCOUNTS|API)_BASE$/.test(k),
+  );
+  return { missing: [...missing, ...(env.STATE ? [] : ['STATE (KV binding)'])], similar };
+}
 
 export class SpotifyError extends Error {
   constructor(public kind: 'disconnected' | 'error', message: string) {
@@ -51,7 +70,7 @@ export async function authorizeUrl(env: Env, redirectUri: string) {
   await env.STATE!.put(K.state + state, '1', { expirationTtl: 600 });
   const q = new URLSearchParams({
     response_type: 'code',
-    client_id: env.SPOTIFY_CLIENT_ID!,
+    client_id: clientId(env),
     scope: SCOPES,
     redirect_uri: redirectUri,
     state,
@@ -63,7 +82,7 @@ async function tokenRequest(env: Env, body: Record<string, string>) {
   const res = await fetch(`${accountsBase(env)}/api/token`, {
     method: 'POST',
     headers: {
-      Authorization: 'Basic ' + btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`),
+      Authorization: 'Basic ' + btoa(`${clientId(env)}:${clientSecret(env)}`),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams(body),

@@ -40,7 +40,13 @@ export const AdminLogin = ({ error }: { error?: string }) => (
   </Shell>
 );
 
-type SpotifyInfo = { configured: boolean; user: string | null; notice: string | null; redirectUri: string };
+type SpotifyInfo = {
+  configured: boolean;
+  setup: { missing: string[]; similar: string[] };
+  user: string | null;
+  notice: string | null;
+  redirectUri: string;
+};
 
 const spotifyNotice: Record<string, string> = {
   connected: 'connected.',
@@ -100,6 +106,13 @@ export const Admin = ({ live, presence, kv, spotify, mixes }: { live: LiveStatus
           </div>
         </div>
         {spotify.notice && <p class={`mono ${spotify.notice === 'connected' ? '' : 'save-err'}`}>{spotifyNotice[spotify.notice] ?? spotify.notice}</p>}
+        {!spotify.configured && (
+          <p class="mono save-err">
+            this worker can't see: {spotify.setup.missing.join(', ')}.
+            {spotify.setup.similar.length > 0 && <> found instead: {spotify.setup.similar.join(', ')} (names must match exactly).</>}
+            {' '}add them under Settings → Variables and Secrets as type Secret, not under Build.
+          </p>
+        )}
         <div class="field-row">
           {spotify.user ? (
             <>

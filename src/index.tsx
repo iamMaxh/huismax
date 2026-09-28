@@ -7,7 +7,7 @@ import { getPresence, setPresence } from './lib/presence';
 import { addMix, getMixes, removeMix } from './lib/mixes';
 import { checkPassword, COOKIE, isAdmin, sameOrigin, sessionValue } from './lib/auth';
 import { Admin, AdminLogin } from './views/admin';
-import { authorizeUrl, configured, connectedAs, disconnect, handleCallback, nowPlaying, recent } from './lib/spotify';
+import { authorizeUrl, configured, connectedAs, disconnect, handleCallback, nowPlaying, recent, setupHints } from './lib/spotify';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
 import { Photographer } from './views/pages/photographer';
@@ -101,7 +101,7 @@ app.get('/admin', async (c) => {
   if (!c.env.ADMIN_TOKEN) return c.html(<AdminLogin error="ADMIN_TOKEN secret is not set." />, 503);
   if (!(await isAdmin(c))) return c.html(<AdminLogin />);
   const [live, presence] = await Promise.all([getLiveStatus(c.env), getPresence(c.env)]);
-  const spotify = { configured: configured(c.env), user: await connectedAs(c.env), notice: c.req.query('spotify') ?? null, redirectUri: redirectUri(c) };
+  const spotify = { configured: configured(c.env), setup: setupHints(c.env), user: await connectedAs(c.env), notice: c.req.query('spotify') ?? null, redirectUri: redirectUri(c) };
   const mixes = await getMixes(c.env);
   return c.html(<Admin live={live} presence={presence} kv={!!c.env.STATE} spotify={spotify} mixes={mixes} />);
 });
