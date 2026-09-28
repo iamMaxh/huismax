@@ -41,7 +41,7 @@ async function poll() {
   clearTimeout(timer);
   let next: Now;
   try {
-    const res = await fetch('/api/spotify/now');
+    const res = await fetch('/api/spotify/now', { cache: 'no-store' });
     next = res.ok ? await res.json() : { state: 'error', track: null };
   } catch {
     next = { state: 'error', track: null };
@@ -65,6 +65,13 @@ function start() {
     if (document.visibilityState === 'visible') poll();
     else clearTimeout(timer);
   });
+  // Phones can bring a page back (from the tab switcher or back/forward cache) without a visibility change,
+  // and can drop a pending timer while asleep: refresh whenever the page is shown again and the data has aged.
+  const refreshIfStale = () => document.visibilityState === 'visible' && Date.now() - receivedAt > 10_000 && poll();
+  window.addEventListener('pageshow', refreshIfStale);
+  window.addEventListener('focus', refreshIfStale);
+  window.addEventListener('online', refreshIfStale);
+  setInterval(() => Date.now() - receivedAt > 30_000 && refreshIfStale(), 5_000);
 }
 
 export const fmtTime = (ms: number) => {

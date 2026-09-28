@@ -194,15 +194,19 @@ const redirectUri = (c: C) => `${c.env.PUBLIC_ORIGIN || new URL(c.req.url).origi
 async function edgeCached<T extends { state: string }>(c: C, ttl: number, load: () => Promise<T>) {
   const cache = (caches as unknown as { default: Cache }).default;
   const key = new Request(new URL(c.req.path, c.req.url).toString());
+  // The edge copy lives `ttl` seconds; browsers never keep one, so a poll always sees the edge's current answer.
+  const toBrowser = (body: BodyInit | null) =>
+    new Response(body, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
   const hit = await cache.match(key);
-  if (hit) return hit;
+  if (hit) return toBrowser(hit.body);
   const data = await load();
-  const res = new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${ttl}` },
-  });
+  const body = JSON.stringify(data);
   // Only cache real data: a setup state (unconfigured / disconnected) or an error must clear as soon as it's fixed.
-  if (CACHEABLE.has(data.state)) c.executionCtx.waitUntil(cache.put(key, res.clone()));
-  return res;
+  if (CACHEABLE.has(data.state)) {
+    const stored = new Response(body, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${ttl}` } });
+    c.executionCtx.waitUntil(cache.put(key, stored));
+  }
+  return toBrowser(body);
 }
 
 const CACHEABLE = new Set(['playing', 'paused', 'recent', 'idle', 'ok']);

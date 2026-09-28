@@ -89,7 +89,7 @@ export const initMusic: PageInit = (main, scope) => {
 
   const recentList = $('[data-recent]', main)!;
   const repeatList = $('[data-repeat]', main)!;
-  fetch('/api/spotify/recent')
+  fetch('/api/spotify/recent', { cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : Promise.reject()))
     .then((d: { state: string; recent: Track[]; onRepeat: Track[] }) => {
       const msg = d.state === 'ok' ? 'nothing yet.' : 'not available right now.';
