@@ -200,8 +200,18 @@ async function edgeCached<T extends { state: string }>(c: C, ttl: number, load: 
   const res = new Response(JSON.stringify(data), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${ttl}` },
   });
-  if (data.state !== 'error') c.executionCtx.waitUntil(cache.put(key, res.clone()));
+  // Only cache real data: a setup state (unconfigured / disconnected) or an error must clear as soon as it's fixed.
+  if (CACHEABLE.has(data.state)) c.executionCtx.waitUntil(cache.put(key, res.clone()));
   return res;
+}
+
+const CACHEABLE = new Set(['playing', 'paused', 'recent', 'idle', 'ok']);
+
+/** Drop the cached Spotify responses, so connecting or disconnecting shows up at once. */
+async function purgeSpotify(c: C) {
+  const cache = (caches as unknown as { default: Cache }).default;
+  const origin = new URL(c.req.url).origin;
+  await Promise.all(['/api/spotify/now', '/api/spotify/recent'].map((p) => cache.delete(new Request(origin + p))));
 }
 
 app.get('/api/spotify/now', (c) => edgeCached(c, 10, () => nowPlaying(c.env)));
@@ -219,6 +229,7 @@ app.get('/api/spotify/callback', async (c) => {
   if (error || !code || !state) return c.redirect(`/admin?spotify=${encodeURIComponent(error || 'cancelled')}`, 302);
   try {
     await handleCallback(c.env, code, state, redirectUri(c));
+    await purgeSpotify(c);
     return c.redirect('/admin?spotify=connected', 302);
   } catch (e) {
     console.error('spotify callback', (e as Error).message);
@@ -230,6 +241,7 @@ app.post('/api/spotify/disconnect', async (c) => {
   const denied = await guard(c);
   if (denied) return denied;
   await disconnect(c.env);
+  await purgeSpotify(c);
   return c.json({ ok: true });
 });
 
