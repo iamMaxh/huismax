@@ -12,5 +12,5 @@ export type Project = {
 };
 
 export const projects: Project[] = [
-  { id: 'tapical', name: 'Tapical', status: 'building', preview: ['> tapical', '  status: building'] },
+  { id: 'tapical', name: 'Tapical', status: 'building', href: 'https://tapical.us', preview: ['> tapical', '  tapical.us', '  status: building'] },
 ];

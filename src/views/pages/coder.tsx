@@ -10,7 +10,10 @@ export const Coder = () => (
         const inner = (
           <>
             <span class="p-idx mono">{String(i + 1).padStart(2, '0')}</span>
-            <span class="p-name">{p.name}</span>
+            <span class="p-name">
+              {p.name}
+              {p.href && /^https?:/.test(p.href) && <span class="ext" aria-hidden="true"> ↗</span>}
+            </span>
             <span class="p-kind mono dim">{p.kind ?? ''}</span>
             <span class="p-year mono dim">{p.year ?? ''}</span>
             <span class={`p-status mono s-${p.status}`}>{p.status}</span>
@@ -20,7 +23,9 @@ export const Coder = () => (
         return (
           <li data-status={p.status}>
             {p.href ? (
-              <a class="project" href={p.href} data-project={i}>{inner}</a>
+              <a class="project" href={p.href} data-project={i} {...(/^https?:/.test(p.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+                {inner}
+              </a>
             ) : (
               <div class="project" tabindex={0} data-project={i}>{inner}</div>
             )}

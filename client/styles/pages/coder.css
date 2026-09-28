@@ -63,3 +63,4 @@ a.project { cursor: pointer; }
   .project-preview { display: none; }
   .projects[data-hovering] .project { opacity: 1; }
 }
+.p-name .ext { font-size: 0.32em; vertical-align: 0.9em; color: var(--fg-3); letter-spacing: 0; }

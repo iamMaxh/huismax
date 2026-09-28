@@ -3,15 +3,18 @@ import type { Presence } from '../../lib/presence';
 import { now } from '../../data/now';
 import { LiveMark } from '../components/live';
 import { Listening } from '../components/listening';
+import { links } from '../../data/links';
 
 const identities = [
   { href: '/photographer', name: 'Photographer', mood: 'photo', meta: '', caption: 'frames' },
   { href: '/dj', name: 'DJ', mood: 'dj', meta: '', caption: 'huismax dj channel' },
   { href: '/trail-runner', name: 'Trail runner', mood: 'trail', meta: '', caption: 'elevation' },
-  { href: '/vibe-coder', name: 'Vibe coder', mood: 'code', meta: 'Tapical', caption: '> building tapical' },
-];
+  { href: '/vibe-coder', name: 'Vibe coder', mood: 'code', meta: 'Tapical', metaUrl: 'https://tapical.us', caption: '> building tapical' },
+] as { href: string; name: string; mood: string; meta: string; metaUrl?: string; caption: string }[];
 
-export const Home = ({ live, presence }: { live: LiveStatus; presence: Presence }) => (
+const spotifyProfile = links.spotifyProfile;
+
+export const Home = ({ live, presence, spotifyConnected }: { live: LiveStatus; presence: Presence; spotifyConnected: boolean }) => (
   <>
     <section class="home-hero" data-mood="none">
       <canvas class="mood-canvas" data-mood-canvas aria-hidden="true" />
@@ -22,6 +25,24 @@ export const Home = ({ live, presence }: { live: LiveStatus; presence: Presence 
             MAX<span class="who-q">?</span>
           </span>
         </h1>
+        {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
+        <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
+          <p class="presence-line presence-off">
+            <span data-presence-status>{presence.status}</span>
+          </p>
+          <Listening class="presence-off" feature pending={spotifyConnected} />
+          {spotifyProfile && (
+            <a class="presence-profile presence-off mono" href={spotifyProfile} target="_blank" rel="noopener noreferrer">
+              spotify profile <span aria-hidden="true">↗</span>
+            </a>
+          )}
+          <p class="presence-line presence-on">
+            <LiveMark live={live} />
+          </p>
+          <p class="presence-sub presence-on mono">
+            <a href="/dj">huismax dj channel</a>
+          </p>
+        </div>
         <div class="hero-side">
           <ol class="identities" data-identities>
             {identities.map((id, i) => (
@@ -29,25 +50,18 @@ export const Home = ({ live, presence }: { live: LiveStatus; presence: Presence 
                 <a class="identity" href={id.href} data-mood-key={id.mood} data-caption={id.caption}>
                   <span class="identity-idx mono">0{i + 1}</span>
                   <span class="identity-name">{id.name}</span>
-                  <span class="identity-meta mono">{id.meta}</span>
+                  <span class="identity-meta mono">{id.metaUrl ? '' : id.meta}</span>
                   <span class="identity-arrow" aria-hidden="true">→</span>
                 </a>
+                {/* a sibling, not nested: the row goes to /vibe-coder, the project name goes to the project */}
+                {id.metaUrl && (
+                  <a class="identity-ext mono" href={id.metaUrl} target="_blank" rel="noopener noreferrer">
+                    {id.meta} <span aria-hidden="true">↗</span>
+                  </a>
+                )}
               </li>
             ))}
           </ol>
-          {/* personal state; a live DJ session overrides it and it returns when the session ends */}
-          <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
-            <p class="presence-line presence-off">
-              <span data-presence-status>{presence.status}</span>
-            </p>
-            <Listening class="presence-off" />
-            <p class="presence-line presence-on">
-              <LiveMark live={live} />
-            </p>
-            <p class="presence-sub presence-on mono">
-              <a href="/dj">huismax dj channel</a>
-            </p>
-          </div>
           <p class="mood-caption mono" data-mood-caption aria-hidden="true" />
         </div>
       </div>

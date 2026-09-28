@@ -53,8 +53,8 @@ async function page(c: C, key: PageKey, title: string | undefined, body: (live: 
 /* ——— pages ——— */
 
 app.get('/', async (c) => {
-  const presence = await getPresence(c.env);
-  return page(c, 'home', undefined, (live) => <Home live={live} presence={presence} />);
+  const [presence, spotifyUser] = await Promise.all([getPresence(c.env), configured(c.env) ? connectedAs(c.env) : null]);
+  return page(c, 'home', undefined, (live) => <Home live={live} presence={presence} spotifyConnected={!!spotifyUser} />);
 });
 app.get('/photographer', (c) => page(c, 'photographer', 'Photographer', () => <Photographer />));
 app.get('/dj', async (c) => {

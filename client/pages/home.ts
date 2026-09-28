@@ -1,4 +1,5 @@
 import { $, $$, cssVar, fitCanvas, reducedMotion } from '../lib/dom';
+import { tickListening } from '../lib/listening';
 import { live } from '../lib/live';
 import { player } from '../lib/player';
 import { readSpectrum } from '../lib/viz';
@@ -66,6 +67,11 @@ export const initHome: PageInit = (main, scope) => {
       links[Number(e.key) - 1]?.focus();
     }
   });
+
+  // Spotify progress on every device (a text + transform update twice a second, nothing else).
+  tickListening(main);
+  const tick = setInterval(() => tickListening(main), 500);
+  scope.add(() => clearInterval(tick));
 
   // Touch devices and reduced motion get no pointer effects at all: no canvas, no loop.
   const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
