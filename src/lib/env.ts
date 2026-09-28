@@ -20,6 +20,8 @@ export type Env = {
   /** Resend API key (secret) for /reply emails, and a fallback destination address. */
   RESEND_API_KEY?: string;
   REPLY_TO?: string;
+  /** Resend sender, e.g. `Max <noreply@huismax.com>` (domain verified in Resend); /admin can override it */
+  EMAIL_FROM?: string;
   /** Test overrides; leave unset in production. */
   SPOTIFY_ACCOUNTS_BASE?: string;
   SPOTIFY_API_BASE?: string;

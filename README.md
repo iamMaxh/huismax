@@ -84,7 +84,7 @@ Public endpoints (edge-cached, safe to poll):
 1. resend.com → API Keys → create one. Cloudflare → the Worker → Settings → Variables and Secrets → add a **Secret** `RESEND_API_KEY`.
 2. `/admin` → reply → set the address messages go to.
 
-The default sender `onboarding@resend.dev` only delivers to the email of your Resend account. To send anywhere, verify a domain in Resend and set the sender in `/admin` (e.g. `huismax <reply@huismax.com>`). Visitors are rate limited (one a minute, ten a day, keyed by a hash of the IP) and a hidden honeypot field drops bots.
+The sender is the `EMAIL_FROM` variable (e.g. `Max <noreply@huismax.com>`, on a domain verified in Resend), or the one set in `/admin`. Without either, Resend's test sender `onboarding@resend.dev` is used, which only delivers to the email of your Resend account. Visitors are rate limited (one a minute, ten a day, keyed by a hash of the IP) and a hidden honeypot field drops bots.
 
 ## Deploy from GitHub (Cloudflare dashboard)
 

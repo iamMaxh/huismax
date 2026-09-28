@@ -93,7 +93,8 @@ async function seed(env: Env) {
 async function importKvMixes(env: Env, ts: string): Promise<D1PreparedStatement[]> {
   if (!env.STATE) return [];
   type KvMix = { id: string; no: number; title: string; url: string; date: string };
-  const mixes = (await env.STATE.get<KvMix[]>('mixes', 'json').catch(() => null)) ?? [];
+  const stored = await env.STATE.get<KvMix[]>('mixes', 'json').catch(() => null);
+  const mixes = Array.isArray(stored) ? stored : [];
   const db = env.DB!;
   return mixes
     .filter((m) => m && typeof m.title === 'string')

@@ -21,6 +21,8 @@ export function validateReply(input: Record<string, unknown>) {
 }
 
 export const destination = (env: Env, s: Settings) => s.replyTo || env.REPLY_TO || '';
+/** Resend's shared test sender only delivers to the Resend account's own address. */
+export const sender = (env: Env, s: Settings) => s.replyFrom || env.EMAIL_FROM?.trim() || 'huismax <onboarding@resend.dev>';
 export const emailReady = (env: Env, s: Settings) => !!(env.RESEND_API_KEY && destination(env, s));
 
 /** An IPv6 visitor controls a whole /64, so they are counted per /64, not per address. */
@@ -80,7 +82,7 @@ export async function emailMessage(env: Env, s: Settings, m: Message): Promise<b
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: s.replyFrom,
+        from: sender(env, s),
         to: [destination(env, s)],
         subject: `huismax — reply${m.name ? ` from ${m.name}` : ''}`,
         text: `${m.body}\n\n— ${m.name || 'no name'}${m.email ? ` <${m.email}>` : ''}\n${m.created_at}`,

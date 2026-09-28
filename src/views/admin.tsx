@@ -397,7 +397,7 @@ export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: Li
               </section>
               <SettingsForm label="where messages go">
                 <Text name="replyTo" label="send messages to" type="email" value={s.replyTo} max={200} placeholder="you@example.com" />
-                <Text name="replyFrom" label="sender" value={s.replyFrom} max={120} hint="name <address> on a domain verified in Resend" />
+                <Text name="replyFrom" label="sender" value={s.replyFrom} max={120} hint="empty = EMAIL_FROM from Cloudflare. name <address> on a domain verified in Resend" />
               </SettingsForm>
             </>
           )}

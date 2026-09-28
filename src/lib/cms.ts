@@ -289,7 +289,7 @@ export const SETTINGS_DEFAULTS: Settings = {
   pages: { photographer: true, dj: true, hiking: true, 'vibe-coder': true, music: true, now: true, reply: true },
   intros: { photographer: '', dj: '', hiking: '', 'vibe-coder': '', music: '', now: '', reply: '' },
   replyTo: '',
-  replyFrom: 'huismax <onboarding@resend.dev>',
+  replyFrom: '', // empty: EMAIL_FROM, else Resend's test sender (see reply.ts)
 };
 
 const TEXT_LIMITS: Partial<Record<keyof Settings, number>> = { headline: 40, tagline: 160, description: 200, footer: 80 };
@@ -314,7 +314,7 @@ export function validateSettings(input: Record<string, unknown>): Partial<Settin
     // "name <address>" or a bare address
     const addr = v.match(/<([^>]+)>$/)?.[1] ?? v;
     if (v && (!EMAIL.test(addr) || v.length > 120)) throw new InputError('sender must look like: huismax <reply@huismax.com>');
-    out.replyFrom = v || SETTINGS_DEFAULTS.replyFrom;
+    out.replyFrom = v;
   }
   if ('spotifyProfile' in input) {
     const v = typeof input.spotifyProfile === 'string' ? input.spotifyProfile.trim() : '';
