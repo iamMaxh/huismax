@@ -2,42 +2,43 @@ import type { Child } from 'hono/jsx';
 import { raw } from 'hono/html';
 import { assets } from '../generated/assets';
 import type { LiveStatus } from '../lib/live';
+import type { Site } from '../lib/content';
 import { AudioBar } from './components/audiobar';
 import { LiveMark } from './components/live';
+import { menuLinks, paletteLinks, SiteContext } from './components/site';
 
-export type PageKey =
-  | 'home' | 'photographer' | 'dj' | 'trail-runner' | 'vibe-coder' | 'music' | 'now' | 'lab' | 'not-found';
+export type PageKey = 'home' | 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply' | 'not-found';
 
 type Props = {
   page: PageKey;
   title?: string;
   description?: string;
   live: LiveStatus;
+  site: Site;
   children: Child;
 };
-
-const nav = [
-  { href: '/', label: 'home', page: 'home' },
-  { href: '/music', label: 'music', page: 'music' },
-  { href: '/dj', label: 'dj', page: 'dj' },
-  { href: '/now', label: 'now', page: 'now' },
-  { href: '/lab', label: 'lab', page: 'lab' },
-] as const;
 
 // Runs before paint so the stored theme never flashes.
 const themeBoot = `try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}`;
 
-export const Layout = ({ page, title, description, live, children }: Props) => {
+const json = (v: unknown) => raw(JSON.stringify(v).replace(/</g, '\\u003c'));
+
+export const Layout = ({ page, title, description, live, site, children }: Props) => {
+  const s = site.settings;
   const fullTitle = title ? `${title} — huismax` : 'huismax';
+  const desc = description || s.description || s.headline;
+  const nav = menuLinks(s);
+  // Only what the menu + palette need; settings themselves (some are private) never reach the page.
+  const clientNav = { menu: nav.map(({ href, label }) => ({ href, label })), pages: paletteLinks(s).map(({ href, label }) => ({ href, label })) };
   return (
     <html lang="en">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <title>{fullTitle}</title>
-        <meta name="description" content={description ?? 'WHO IS MAX?'} />
+        <meta name="description" content={desc} />
         <meta property="og:title" content={fullTitle} />
-        <meta property="og:description" content={description ?? 'WHO IS MAX?'} />
+        <meta property="og:description" content={desc} />
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -62,9 +63,11 @@ export const Layout = ({ page, title, description, live, children }: Props) => {
             ))}
           </nav>
           <div class="header-tools">
-            <a class="header-live" href="/dj" aria-label="huismax dj channel status">
-              <LiveMark live={live} />
-            </a>
+            {s.pages.dj && (
+              <a class="header-live" href="/dj" aria-label="huismax dj channel status">
+                <LiveMark live={live} />
+              </a>
+            )}
             <button class="menu-btn" type="button" data-menu-open aria-haspopup="dialog">
               menu
             </button>
@@ -72,17 +75,29 @@ export const Layout = ({ page, title, description, live, children }: Props) => {
         </header>
 
         <main id="main" tabindex={-1} data-page={page}>
-          {children}
+          <SiteContext.Provider value={site}>{children}</SiteContext.Provider>
         </main>
 
         <footer class="site-footer">
-          <span>huismax © 2026</span>
-          <a class="footer-hint" href="/lab">lab</a>
+          {s.footer && <span class="footer-text">{s.footer}</span>}
+          {site.links.length > 0 && (
+            <ul class="footer-links" aria-label="elsewhere">
+              {site.links.map((l) => (
+                <li>
+                  <a href={String(l.url)} target="_blank" rel="noopener noreferrer">
+                    {String(l.label)} <span aria-hidden="true">↗</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </footer>
 
-        <AudioBar live={live} />
+        <AudioBar live={live} dj={s.pages.dj} />
         <div class="sr-only" aria-live="polite" data-route-announcer />
-        <script type="application/json" id="live-initial">{raw(JSON.stringify(live).replace(/</g, '\\u003c'))}</script>
+        <script type="application/json" id="site-nav">{json(clientNav)}</script>
+        {/* the label only ever says LIVE: "off air" is never shown on the public site */}
+        <script type="application/json" id="live-initial">{json({ ...live, label: live.isLive ? 'LIVE' : '' })}</script>
       </body>
     </html>
   );

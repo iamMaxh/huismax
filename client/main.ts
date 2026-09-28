@@ -8,24 +8,23 @@ import { startPalette } from './lib/palette';
 import { startMenu } from './lib/menu';
 import { startAudioBar, playLive } from './lib/audiobar';
 import { initHome } from './pages/home';
-import { initPhotographer } from './pages/photographer';
+import { initAlbum } from './pages/album';
 import { initDJ } from './pages/dj';
-import { initTrail } from './pages/trail';
 import { initCoder } from './pages/coder';
 import { initMusic } from './pages/music';
-import { initLab } from './pages/lab';
+import { initReply } from './pages/reply';
 import { initNotFound } from './pages/notfound';
 
 export type PageInit = (main: HTMLElement, scope: Scope, nav: (href: string) => void) => void;
 
 const pages: Record<string, PageInit> = {
   home: initHome,
-  photographer: initPhotographer,
+  photographer: initAlbum,
+  hiking: initAlbum,
   dj: initDJ,
-  'trail-runner': initTrail,
   'vibe-coder': initCoder,
   music: initMusic,
-  lab: initLab,
+  reply: initReply,
   'not-found': initNotFound,
 };
 

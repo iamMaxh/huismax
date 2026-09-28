@@ -93,13 +93,22 @@ main > *:nth-child(n + 4) { animation-delay: 240ms; }
 /* ——— footer ——— */
 .site-footer {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px 24px;
   padding: 24px var(--gutter) calc(var(--bar-h) + 28px);
   border-top: 1px solid var(--line);
   font: 400 var(--t-xs)/1 var(--font-mono);
   color: var(--fg-3);
 }
-.footer-hint kbd { margin: 0 2px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 0 20px; margin-left: auto; }
+/* 40px tall: easy to hit on a phone, still one quiet line */
+.footer-links a { display: inline-flex; align-items: center; min-height: 40px; transition: color var(--fast); }
+.footer-links a:hover, .footer-links a:focus-visible { color: var(--fg); }
+@media (max-width: 560px) {
+  .footer-links { margin-left: 0; }
+}
 
 /* ——— audio bar ——— */
 .audiobar {

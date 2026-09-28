@@ -50,12 +50,34 @@ a.track:hover { padding-left: 6px; }
 .track-meta { grid-area: meta; }
 .tracks-empty { padding: 14px 0; }
 
+/* ——— manual picks (rotation, featured) ——— */
+.picks { display: grid; }
+.pick {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  transition: padding var(--mid) var(--ease);
+}
+a.pick:hover, a.pick:focus-visible { padding-left: 6px; }
+.pick-title { overflow-wrap: anywhere; }
+.pick-sub { font-size: var(--t-sm); overflow-wrap: anywhere; }
+.pick .ext, .artist .ext { color: var(--fg-3); }
+
+.music-profile { justify-self: start; display: inline-flex; align-items: center; min-height: 32px; color: var(--fg-3); transition: color var(--fast); }
+.music-profile:hover, .music-profile:focus-visible { color: var(--fg); }
+
 /* ——— artists ——— */
 .artist-list { border-top: 1px solid var(--line); }
 .artist { padding: 8px 0 12px; border-bottom: 1px solid var(--line); transition: opacity var(--mid) var(--ease); outline: none; }
-.artist-name { display: inline-block; font-size: clamp(30px, 5vw, 76px); font-weight: 450; letter-spacing: -0.05em; line-height: 1; transition: transform var(--mid) var(--ease); }
+.artist-link { display: block; }
+.artist-link:focus-visible { outline-offset: 2px; }
+.artist-name { display: inline-block; font-size: clamp(30px, 5vw, 76px); font-weight: 450; letter-spacing: -0.05em; line-height: 1; overflow-wrap: anywhere; transition: transform var(--mid) var(--ease); }
+.artist-name .ext { font-size: 0.32em; vertical-align: 0.9em; letter-spacing: 0; }
+.artist-sub { display: block; padding-top: 6px; }
 .artist-list:hover .artist { opacity: 0.3; }
-.artist-list .artist:hover, .artist:focus-visible { opacity: 1; }
+.artist-list .artist:hover, .artist:focus-within { opacity: 1; }
 .artist:hover .artist-name { transform: translateX(10px); }
 
 @media (max-width: 800px) {

@@ -5,7 +5,8 @@ type Project = { name: string; preview: string[] };
 
 export const initCoder: PageInit = (main, scope) => {
   const projects = readJSON<Project[]>('project-data', main) ?? [];
-  const list = $('[data-projects]', main)!;
+  const list = $('[data-projects]', main);
+  if (!list) return; // no public projects
   const preview = $('[data-project-preview]', main)!;
   const ppName = $('[data-pp-name]', preview)!;
   const ppBody = $('[data-pp-body]', preview)!;
@@ -75,5 +76,4 @@ export const initCoder: PageInit = (main, scope) => {
       rows()[0]?.focus();
     }
   });
-
 };

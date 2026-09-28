@@ -1,10 +1,47 @@
-import { artists } from '../../data/music';
+import type { Item } from '../../lib/cms';
 import { PageHead } from '../components/head';
 
-/** Everything live here comes from Spotify via /api/spotify/*, rendered client-side. */
-export const Music = () => (
+type Props = { artists: Item[]; rotation: Item[]; featured: Item[]; spotifyProfile: string; intro: string };
+
+const s = (v: unknown) => (v === undefined || v === null ? '' : String(v));
+
+/** A manual pick: title (+ subtitle), linked when it has a url. */
+const Pick = ({ item }: { item: Item }) => {
+  const inner = (
+    <>
+      <span class="pick-title">
+        {s(item.title)}
+        {s(item.url) && <span class="ext" aria-hidden="true"> ↗</span>}
+      </span>
+      {s(item.subtitle) && <span class="pick-sub dim">{s(item.subtitle)}</span>}
+    </>
+  );
+  return (
+    <li>
+      {s(item.url) ? (
+        <a class="pick" href={s(item.url)} target="_blank" rel="noopener noreferrer">
+          {inner}
+        </a>
+      ) : (
+        <div class="pick">{inner}</div>
+      )}
+    </li>
+  );
+};
+
+/**
+ * Spotify (now playing, recently played, on repeat) is live via /api/spotify/*, rendered client-side.
+ * Artists, rotation and featured are Max's own picks from /admin; a section only appears when it has items.
+ */
+export const Music = ({ artists, rotation, featured, spotifyProfile, intro }: Props) => (
   <div class="music-page">
-    <PageHead crumb="music" title="Music" class="music-head" />
+    <PageHead crumb="music" title="Music" intro={intro} class="music-head">
+      {spotifyProfile && (
+        <a class="music-profile mono" href={spotifyProfile} target="_blank" rel="noopener noreferrer">
+          spotify profile <span aria-hidden="true">↗</span>
+        </a>
+      )}
+    </PageHead>
 
     <section class="np" data-np data-state="loading" aria-label="spotify" aria-live="polite">
       <a class="np-art" data-np-art-link target="_blank" rel="noopener" tabindex={-1}>
@@ -43,15 +80,53 @@ export const Music = () => (
       </section>
     </div>
 
-    <section class="artists" aria-label="artists">
-      <h2 class="section-label mono">always</h2>
-      <ol class="artist-list">
-        {artists.map((a) => (
-          <li class="artist" tabindex={0}>
-            <span class="artist-name">{a}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    {(rotation.length > 0 || featured.length > 0) && (
+      <div class="music-cols">
+        {rotation.length > 0 && (
+          <section aria-label="in rotation">
+            <h2 class="section-label mono">in rotation</h2>
+            <ol class="picks">
+              {rotation.map((m) => <Pick item={m} />)}
+            </ol>
+          </section>
+        )}
+        {featured.length > 0 && (
+          <section aria-label="featured">
+            <h2 class="section-label mono">featured</h2>
+            <ol class="picks">
+              {featured.map((m) => <Pick item={m} />)}
+            </ol>
+          </section>
+        )}
+      </div>
+    )}
+
+    {artists.length > 0 && (
+      <section class="artists" aria-label="artists">
+        <h2 class="section-label mono">artists</h2>
+        <ol class="artist-list">
+          {artists.map((a) => {
+            const name = (
+              <>
+                <span class="artist-name">
+                  {s(a.title)}
+                  {s(a.url) && <span class="ext" aria-hidden="true"> ↗</span>}
+                </span>
+                {s(a.subtitle) && <span class="artist-sub mono dim">{s(a.subtitle)}</span>}
+              </>
+            );
+            return s(a.url) ? (
+              <li class="artist">
+                <a class="artist-link" href={s(a.url)} target="_blank" rel="noopener noreferrer">
+                  {name}
+                </a>
+              </li>
+            ) : (
+              <li class="artist">{name}</li>
+            );
+          })}
+        </ol>
+      </section>
+    )}
   </div>
 );

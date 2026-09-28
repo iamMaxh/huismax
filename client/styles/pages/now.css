@@ -16,6 +16,10 @@
 .now-item .listening { align-items: center; }
 .now-item .listening-art { width: 44px; height: 44px; }
 .now-item .listening-track { font-size: var(--t-md); }
+.now-item dd { overflow-wrap: anywhere; }
+.now-link { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em; text-decoration-color: var(--line-2); transition: text-decoration-color var(--fast); }
+.now-link:hover, .now-link:focus-visible { text-decoration-color: currentColor; }
+.now-link .ext { color: var(--fg-3); font-size: 0.7em; }
 .now-updated { padding-top: 16px; }
 @media (max-width: 520px) {
   .now-item { grid-template-columns: 1fr; gap: 6px; }

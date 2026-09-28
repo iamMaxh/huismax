@@ -1,0 +1,42 @@
+.reply-page { max-width: 640px; }
+.reply-head { padding-bottom: 28px; }
+.reply-head .page-title { font-size: clamp(40px, 6vw, 72px); }
+
+.reply-form { display: grid; gap: 22px; border-top: 1px solid var(--line); padding-top: 22px; }
+.field { display: grid; gap: 0; min-width: 0; }
+.field .label { margin-bottom: 6px; }
+.reply-form :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 0;
+  color: var(--fg);
+  font: 400 var(--t-lg)/1.35 var(--font-sans);
+  letter-spacing: -0.015em;
+  outline: none;
+  transition: border-color var(--fast);
+}
+.reply-form textarea { resize: vertical; min-height: 9.5em; font-size: var(--t-md); line-height: 1.55; letter-spacing: 0; }
+.reply-form :is(input, textarea):focus { border-color: var(--fg); }
+.reply-form :is(input, textarea):disabled { color: var(--fg-2); }
+.reply-count { justify-self: end; padding-top: 8px; font-variant-numeric: tabular-nums; }
+.reply-count.near { color: var(--fg); }
+.reply-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 28px; }
+.reply-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-top: 6px; }
+.reply-status { color: var(--fg-2); min-height: 1em; }
+.reply-status[data-tone='ok'] { color: var(--fg); }
+.reply-status[data-tone='error'] { color: var(--fg); }
+.reply-status[data-tone='error']::before { content: '× '; }
+.reply-form[aria-busy='true'] .btn-primary { opacity: 0.6; }
+.reply-offline { padding: 22px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+/* honeypot: out of sight and out of the tab order; bots still see a field */
+.reply-trap { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+@media (max-width: 560px) {
+  .reply-row { grid-template-columns: 1fr; }
+}

@@ -43,7 +43,7 @@ export const initHome: PageInit = (main, scope) => {
     scope.on(a, 'blur', () => setMood('none'));
   }
 
-  // ↑/↓ between identities, 1–4 to jump.
+  // ↑/↓ between identities, 1–9 to jump.
   scope.on(document, 'keydown', (e: KeyboardEvent) => {
     if ((e.target as HTMLElement).closest('input, textarea, dialog[open]')) return;
     const i = links.indexOf(document.activeElement as HTMLAnchorElement);
@@ -51,7 +51,7 @@ export const initHome: PageInit = (main, scope) => {
       if (i < 0 && e.key === 'ArrowUp') return;
       e.preventDefault();
       links[(i + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length].focus();
-    } else if (/^[1-4]$/.test(e.key) && !e.metaKey && !e.ctrlKey) {
+    } else if (/^[1-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
       links[Number(e.key) - 1]?.focus();
     }
   });

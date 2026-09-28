@@ -3,12 +3,11 @@
 @import './layout.css';
 @import './components.css';
 @import './pages/home.css';
-@import './pages/photographer.css';
+@import './pages/album.css';
 @import './pages/dj.css';
-@import './pages/trail.css';
 @import './pages/coder.css';
 @import './pages/music.css';
 @import './pages/now.css';
-@import './pages/lab.css';
+@import './pages/reply.css';
 @import './pages/notfound.css';
 @import './pages/admin.css';

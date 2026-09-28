@@ -96,7 +96,8 @@ export function startRouter(hooks: Hooks) {
         if (a.dataset.nav === next.dataset.page) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');
       }
-      if (url.hash) $(url.hash)?.scrollIntoView();
+      // by id, not selector: a hash like #0a1b… is not a valid CSS selector
+      if (url.hash) document.getElementById(decodeURIComponent(url.hash.slice(1)))?.scrollIntoView();
       else scrollTo(0, opts.y ?? 0);
       hooks.afterSwap(next);
       next.focus({ preventScroll: true });

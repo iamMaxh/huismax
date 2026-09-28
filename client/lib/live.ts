@@ -2,7 +2,8 @@ import { $$, readJSON } from './dom';
 
 export type LiveStatus = {
   isLive: boolean;
-  label: 'LIVE' | 'OFF AIR';
+  /** ignored: the public site only ever says LIVE (see paintLive) */
+  label: string;
   streamUrl: string | null;
   sessionTitle: string | null;
   startedAt: string | null;
@@ -13,7 +14,7 @@ export type Presence = { status: string; listening: { title: string; artist: str
 type Listener = (s: LiveStatus) => void;
 const listeners = new Set<Listener>();
 let current: LiveStatus = readJSON<LiveStatus>('live-initial') ?? {
-  isLive: false, label: 'OFF AIR', streamUrl: null, sessionTitle: null, startedAt: null, updatedAt: '',
+  isLive: false, label: '', streamUrl: null, sessionTitle: null, startedAt: null, updatedAt: '',
 };
 let presence: Presence | null = null;
 
@@ -29,7 +30,8 @@ export const live = {
 /** Applies status to every generic live element on the page (marks, listen buttons, session lines). */
 export function paintLive(root: ParentNode = document, s = current) {
   for (const el of $$('[data-live-mark], [data-live-root], [data-presence]', root)) el.dataset.live = s.isLive ? 'on' : 'off';
-  for (const el of $$('[data-live-label]', root)) el.textContent = s.label;
+  // never "off air": off, the mark is empty (and hidden by CSS)
+  for (const el of $$('[data-live-label]', root)) el.textContent = s.isLive ? 'LIVE' : '';
   for (const el of $$<HTMLButtonElement>('[data-listen-live]', root)) {
     el.disabled = !s.isLive;
     if (el.dataset.hideOff !== undefined) el.hidden = !s.isLive;

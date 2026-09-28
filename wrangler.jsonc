@@ -22,8 +22,12 @@
   },
   // Keep variables added in the dashboard instead of dropping them on each deploy.
   "keep_vars": true,
-  // Free-tier KV for live status, personal status and the guestbook.
+  // Free-tier KV for live status, personal status, Spotify tokens and rate limits.
   // No id needed: wrangler creates the namespace on first deploy.
   "kv_namespaces": [{ "binding": "STATE" }],
+  // CMS content (src/lib/cms.ts). Created on first deploy like STATE; the worker applies migrations/ itself.
+  "d1_databases": [{ "binding": "DB", "migrations_dir": "migrations" }],
+  // Uploaded photos and DJ covers (src/lib/media.ts). Also created on first deploy.
+  "r2_buckets": [{ "binding": "MEDIA" }],
   "observability": { "enabled": true }
 }

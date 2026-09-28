@@ -53,8 +53,7 @@ a.project { cursor: pointer; }
 .pp-bar span { margin-left: 8px; }
 .project-preview pre { margin: 0; padding: 14px 14px 18px; min-height: 104px; font: inherit; line-height: 1.7; white-space: pre; color: var(--fg); }
 
-.coder-foot { padding-top: 48px; }
-.coder-foot a { color: var(--fg); }
+.coder-empty { padding: 22px 0; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line); }
 
 @media (max-width: 800px) {
   .project { grid-template-columns: 32px 1fr auto; grid-template-areas: 'idx name status' '. kind year' '. note note'; row-gap: 6px; }

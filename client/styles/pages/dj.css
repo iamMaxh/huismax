@@ -97,3 +97,39 @@
 .console-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 32px; }
 .console-bar .console-cell:first-child { flex: 1 1 280px; min-width: 0; }
 .console-title { overflow-wrap: anywhere; }
+
+/* intro spans the head; the live mark keeps its place beside the title */
+.dj-head .page-intro { grid-column: 1 / -1; }
+.dj-head .live-mark { grid-column: 2; grid-row: 2; }
+
+/* ——— sessions ——— */
+.mix { align-items: start; }
+.mix-play { margin-top: 2px; }
+.mix-body { gap: 10px; min-width: 0; }
+.mix-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.mix-cover { flex: none; width: 56px; height: 56px; object-fit: cover; background: var(--bg-3); }
+.mix-text { display: grid; gap: 4px; min-width: 0; }
+.mix-title { overflow-wrap: anywhere; }
+.mix-desc { max-width: 64ch; font-size: var(--t-sm); line-height: 1.55; color: var(--fg-2); white-space: pre-line; overflow-wrap: anywhere; }
+.mix-tracks summary {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px;
+  color: var(--fg-2);
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--fast);
+}
+.mix-tracks summary::-webkit-details-marker { display: none; }
+.mix-tracks summary::before { content: '+'; width: 10px; transition: transform var(--mid) var(--ease); }
+.mix-tracks[open] summary::before { transform: rotate(45deg); }
+.mix-tracks summary:hover { color: var(--fg); }
+.mix-tracklist { display: grid; padding: 4px 0 8px; font-size: var(--t-xs); }
+.mix-tracklist li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.mix-link { justify-self: start; display: inline-flex; align-items: center; min-height: 32px; color: var(--fg-3); transition: color var(--fast); }
+.mix-link:hover, .mix-link:focus-visible { color: var(--fg); }
+.mix-wave { margin-top: 6px; }
+@media (max-width: 640px) {
+  .mix { grid-template-columns: 40px minmax(0, 1fr); }
+  .mix-wave { display: none; }
+  .mix-cover { width: 48px; height: 48px; }
+}

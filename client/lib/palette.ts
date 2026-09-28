@@ -2,13 +2,9 @@ import { $ } from './dom';
 import { live } from './live';
 import { player } from './player';
 import { toggleTheme } from './theme';
+import { paletteLinks, randomPage } from './nav';
 
 type Item = { id: string; label: string; hint: string; group: 'go' | 'do'; run: () => void };
-
-const pages: [string, string][] = [
-  ['/', 'home'], ['/photographer', 'photographer'], ['/dj', 'dj'], ['/trail-runner', 'trail runner'],
-  ['/vibe-coder', 'vibe coder'], ['/music', 'music'], ['/now', 'now'], ['/lab', 'lab'],
-];
 
 /** Hidden ⌘K / "/" command palette — an easter egg for keyboard people; the real menu is menu.ts. */
 export function startPalette(navigate: (href: string) => void) {
@@ -27,13 +23,13 @@ export function startPalette(navigate: (href: string) => void) {
   const list = $<HTMLUListElement>('ul', dialog)!;
 
   const items = (): Item[] => [
-    ...pages.map(([href, label]) => ({ id: href, label, hint: href, group: 'go' as const, run: () => navigate(href) })),
+    ...paletteLinks().map(({ href, label }) => ({ id: href, label, hint: href, group: 'go' as const, run: () => navigate(href) })),
     ...(live.get().isLive
       ? [{ id: 'listen', label: 'listen live', hint: '● LIVE', group: 'do' as const, run: () => player.play({ kind: 'live', id: 'live', title: live.get().sessionTitle ?? 'huismax dj channel', url: live.get().streamUrl }) }]
       : []),
     ...(player.state().source ? [{ id: 'stop', label: 'stop audio', hint: '■', group: 'do' as const, run: () => player.stop() }] : []),
     { id: 'theme', label: 'switch theme', hint: 'black / white', group: 'do', run: () => toggleTheme() },
-    { id: 'random', label: 'somewhere random', hint: '?', group: 'do', run: () => navigate(pages[Math.floor(Math.random() * pages.length)][0]) },
+    { id: 'random', label: 'somewhere random', hint: '?', group: 'do', run: () => navigate(randomPage()) },
     { id: 'copy', label: 'copy link', hint: location.host, group: 'do', run: () => navigator.clipboard?.writeText(location.href) },
   ];
 

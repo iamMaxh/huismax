@@ -22,15 +22,24 @@
   column-gap: clamp(32px, 6vw, 96px);
   row-gap: clamp(24px, 4.5vh, 48px);
 }
+.who-wrap { grid-area: who; min-width: 0; }
 .who {
-  grid-area: who;
   font-weight: 500;
+  overflow-wrap: anywhere;
   font-size: clamp(44px, 5.6vw, 92px);
   line-height: 0.86;
   letter-spacing: -0.06em;
   margin-left: -0.05em;
 }
 .who-line { display: block; }
+.who-tagline {
+  margin-top: clamp(16px, 2.4vh, 28px);
+  max-width: 40ch;
+  font-size: var(--t-lg);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--fg-2);
+}
 .who-q { display: inline-block; transition: transform var(--slow) var(--ease), opacity var(--mid); }
 .home-hero:not([data-mood='none']) .who-q { transform: rotate(12deg) translateY(-0.04em); }
 .home-hero:not([data-mood='none']) .who { color: var(--fg); }

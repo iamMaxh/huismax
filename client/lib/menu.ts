@@ -1,8 +1,8 @@
 import { $, $$ } from './dom';
 import { toggleTheme } from './theme';
+import { menuLinks, randomPage } from './nav';
 
-const primary: [string, string][] = [['/', 'Home'], ['/music', 'Music'], ['/dj', 'DJ'], ['/now', 'Now'], ['/lab', 'Lab']];
-const everywhere = ['/', '/photographer', '/dj', '/trail-runner', '/vibe-coder', '/music', '/now', '/lab'];
+const title = (label: string) => (label === 'dj' ? 'DJ' : label[0].toUpperCase() + label.slice(1));
 
 /** The site's main menu: a plain full-screen overlay. (⌘K / "/" still opens the hidden palette.) */
 export function startMenu(navigate: (href: string) => void) {
@@ -14,14 +14,22 @@ export function startMenu(navigate: (href: string) => void) {
       <span class="wordmark">huismax</span>
       <button type="button" class="menu-btn" data-menu-close>close</button>
     </div>
-    <nav class="menu-primary" aria-label="menu">
-      ${primary.map(([href, label], i) => `<a href="${href}" data-menu-link><span class="menu-idx mono">0${i + 1}</span><span class="menu-label">${label}</span></a>`).join('')}
-    </nav>
+    <nav class="menu-primary" aria-label="menu"></nav>
     <div class="menu-secondary mono">
       <button type="button" data-menu-act="theme">switch theme</button>
       <button type="button" data-menu-act="random">random</button>
       <button type="button" data-menu-act="copy">copy link</button>
     </div>`;
+  const primary = $('.menu-primary', dialog)!;
+  menuLinks().forEach(({ href, label }, i) => {
+    const a = document.createElement('a');
+    a.href = href;
+    a.dataset.menuLink = '';
+    a.innerHTML = '<span class="menu-idx mono"></span><span class="menu-label"></span>';
+    a.children[0].textContent = String(i + 1).padStart(2, '0');
+    a.children[1].textContent = title(label);
+    primary.append(a);
+  });
   document.body.append(dialog);
 
   const open = () => {
@@ -50,8 +58,7 @@ export function startMenu(navigate: (href: string) => void) {
     if (act === 'theme') toggleTheme();
     if (act === 'random') {
       close();
-      const others = everywhere.filter((p) => p !== location.pathname);
-      navigate(others[Math.floor(Math.random() * others.length)]);
+      navigate(randomPage());
     }
     if (act === 'copy') {
       const btn = t.closest<HTMLElement>('[data-menu-act]')!;

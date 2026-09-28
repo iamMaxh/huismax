@@ -1,103 +1,166 @@
+import type { Child } from 'hono/jsx';
 import type { LiveStatus } from '../../lib/live';
 import type { Presence } from '../../lib/presence';
-import { now } from '../../data/now';
+import type { Item, Settings } from '../../lib/cms';
 import { LiveMark } from '../components/live';
 import { Listening } from '../components/listening';
-import { links } from '../../data/links';
+import { extAttrs, isOpen } from '../components/site';
 
-const identities = [
-  { href: '/photographer', name: 'Photographer', mood: 'photo', meta: '', caption: 'frames' },
-  { href: '/dj', name: 'DJ', mood: 'dj', meta: '', caption: 'huismax dj channel' },
-  { href: '/trail-runner', name: 'Trail runner', mood: 'trail', meta: '', caption: 'elevation' },
-  { href: '/vibe-coder', name: 'Vibe coder', mood: 'code', meta: 'Tapical', metaUrl: 'https://tapical.us', caption: '> building tapical' },
-] as { href: string; name: string; mood: string; meta: string; metaUrl?: string; caption: string }[];
+type Props = {
+  live: LiveStatus;
+  presence: Presence;
+  spotifyConnected: boolean;
+  settings: Settings;
+  identities: Item[];
+  projects: Item[];
+  now: Item[];
+};
 
-const spotifyProfile = links.spotifyProfile;
+const s = (v: unknown) => (v === undefined || v === null ? '' : String(v));
 
-export const Home = ({ live, presence, spotifyConnected }: { live: LiveStatus; presence: Presence; spotifyConnected: boolean }) => (
-  <>
-    {/* code rain behind the whole homepage (client/pages/home.ts) */}
-    <canvas class="rain" data-rain aria-hidden="true" />
-    <section class="home-hero" data-mood="none">
-      <div class="hero-inner">
-        <h1 class="who" data-who>
-          <span class="who-line">WHO IS</span>
+/** "WHO IS MAX?" → "WHO IS" / "MAX?": the last word gets its own line, a trailing "?" tilts on hover. */
+function Headline({ text }: { text: string }) {
+  const cut = text.lastIndexOf(' ');
+  const lines = cut > 0 ? [text.slice(0, cut), text.slice(cut + 1)] : [text];
+  const last = lines.length - 1;
+  return (
+    <h1 class="who">
+      {lines.map((l, i) =>
+        i === last && l.endsWith('?') ? (
           <span class="who-line">
-            MAX<span class="who-q">?</span>
+            {l.slice(0, -1)}
+            <span class="who-q">?</span>
           </span>
-        </h1>
-        {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
-        <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
-          <p class="presence-line presence-off">
-            <span data-presence-status>{presence.status}</span>
-          </p>
-          <Listening class="presence-off" feature pending={spotifyConnected} />
-          {spotifyProfile && (
-            <a class="presence-profile presence-off mono" href={spotifyProfile} target="_blank" rel="noopener noreferrer">
-              spotify profile <span aria-hidden="true">↗</span>
-            </a>
-          )}
-          <p class="presence-line presence-on">
-            <LiveMark live={live} />
-          </p>
-          <p class="presence-sub presence-on mono">
-            <a href="/dj">huismax dj channel</a>
-          </p>
+        ) : (
+          <span class="who-line">{l}</span>
+        ),
+      )}
+    </h1>
+  );
+}
+
+/** A small link beside an identity: its own meta link, or (for the vibe coder) the first public project. */
+function sideLink(id: Item, project: Item | undefined) {
+  const url = s(id.meta_url);
+  if (url) return { text: s(id.meta) || url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/.*$/, ''), url };
+  const coder = id.id === 'vibe-coder' || id.href === '/vibe-coder';
+  if (coder && project && s(project.url) && !s(id.meta)) return { text: s(project.name), url: s(project.url) };
+  return null;
+}
+
+export const Home = ({ live, presence, spotifyConnected, settings, identities, projects, now }: Props) => {
+  const project = projects[0];
+  // a row never leads to a page the admin has hidden
+  const rows = identities.filter((id) => isOpen(settings, s(id.href)));
+  const open = (href: string) => isOpen(settings, href);
+  const Cell = ({ href, children }: { href: string; children?: Child }) =>
+    open(href) ? (
+      <a class="index-cell" data-prox href={href}>
+        {children}
+      </a>
+    ) : (
+      <div class="index-cell" data-prox>
+        {children}
+      </div>
+    );
+  const elsewhere = [
+    ['/music', 'music'],
+    ['/dj', 'dj'],
+    ['/reply', 'reply'],
+  ].filter(([href]) => open(href));
+
+  return (
+    <>
+      {/* code rain behind the whole homepage (client/pages/home.ts) */}
+      <canvas class="rain" data-rain aria-hidden="true" />
+      <section class="home-hero" data-mood="none">
+        <div class="hero-inner">
+          <div class="who-wrap">
+            <Headline text={settings.headline} />
+            {settings.tagline && <p class="who-tagline">{settings.tagline}</p>}
+          </div>
+          {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
+          <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
+            <p class="presence-line presence-off">
+              <span data-presence-status>{presence.status}</span>
+            </p>
+            <Listening class="presence-off" feature pending={spotifyConnected} />
+            {settings.spotifyProfile && (
+              <a class="presence-profile presence-off mono" href={settings.spotifyProfile} target="_blank" rel="noopener noreferrer">
+                spotify profile <span aria-hidden="true">↗</span>
+              </a>
+            )}
+            <p class="presence-line presence-on">
+              <LiveMark live={live} />
+            </p>
+            {settings.pages.dj && (
+              <p class="presence-sub presence-on mono">
+                <a href="/dj">huismax dj channel</a>
+              </p>
+            )}
+          </div>
+          <div class="hero-side">
+            {rows.length > 0 && (
+              <ol class="identities" data-identities>
+                {rows.map((id, i) => {
+                  const side = sideLink(id, project);
+                  return (
+                    <li>
+                      <a class="identity" href={s(id.href)} {...extAttrs(s(id.href))} data-mood-key={s(id.id)} data-caption={s(id.caption)}>
+                        <span class="identity-idx mono">{String(i + 1).padStart(2, '0')}</span>
+                        <span class="identity-name">{s(id.name)}</span>
+                        <span class="identity-meta mono">{side ? '' : s(id.meta)}</span>
+                        <span class="identity-arrow" aria-hidden="true">→</span>
+                      </a>
+                      {/* a sibling, not nested: the row goes to its page, the small link goes out */}
+                      {side && (
+                        <a class="identity-ext mono" href={side.url} target="_blank" rel="noopener noreferrer">
+                          {side.text} <span aria-hidden="true">↗</span>
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            <p class="mood-caption mono" data-mood-caption aria-hidden="true" />
+          </div>
         </div>
-        <div class="hero-side">
-          <ol class="identities" data-identities>
-            {identities.map((id, i) => (
+      </section>
+
+      <section class="home-index" aria-label="index">
+        <Cell href="/now">
+          <span class="index-label mono">now</span>
+          <ul class="index-list">
+            <li>
+              <span class="mono dim">right now</span> <span data-presence-status>{presence.status}</span>
+            </li>
+            {now.map((n) => (
               <li>
-                <a class="identity" href={id.href} data-mood-key={id.mood} data-caption={id.caption}>
-                  <span class="identity-idx mono">0{i + 1}</span>
-                  <span class="identity-name">{id.name}</span>
-                  <span class="identity-meta mono">{id.metaUrl ? '' : id.meta}</span>
-                  <span class="identity-arrow" aria-hidden="true">→</span>
-                </a>
-                {/* a sibling, not nested: the row goes to /vibe-coder, the project name goes to the project */}
-                {id.metaUrl && (
-                  <a class="identity-ext mono" href={id.metaUrl} target="_blank" rel="noopener noreferrer">
-                    {id.meta} <span aria-hidden="true">↗</span>
-                  </a>
-                )}
+                {s(n.label) && <span class="mono dim">{s(n.label)}</span>} {s(n.text)}
               </li>
             ))}
-          </ol>
-          <p class="mood-caption mono" data-mood-caption aria-hidden="true" />
-        </div>
-      </div>
-    </section>
-
-    <section class="home-index" aria-label="index">
-      <a class="index-cell" data-prox href="/now">
-        <span class="index-label mono">now</span>
-        <ul class="index-list">
-          <li>
-            <span class="mono dim">right now</span> <span data-presence-status>{presence.status}</span>
-          </li>
-          {now.map((n) => (
-            <li>
-              <span class="mono dim">{n.key}</span> {n.value}
-            </li>
+          </ul>
+        </Cell>
+        <Cell href="/music">
+          <span class="index-label mono" data-listening-label>listening</span>
+          <span class="index-art" aria-hidden="true"><img alt="" data-listening-art hidden /></span>
+          <span class="index-big" data-listening-name>—</span>
+          <span class="dim" data-listening-artist />
+        </Cell>
+        <Cell href="/vibe-coder">
+          <span class="index-label mono">building</span>
+          {projects.length ? projects.map((p) => <span class="index-big">{s(p.name)}</span>) : <span class="index-big dim">—</span>}
+        </Cell>
+        <div class="index-cell index-links" data-prox>
+          <span class="index-label mono">elsewhere</span>
+          {elsewhere.map(([href, label]) => (
+            <a class="index-link" href={href}>
+              {label} <span aria-hidden="true">→</span>
+            </a>
           ))}
-        </ul>
-      </a>
-      <a class="index-cell" data-prox href="/music">
-        <span class="index-label mono" data-listening-label>listening</span>
-        <span class="index-art" aria-hidden="true"><img alt="" data-listening-art hidden /></span>
-        <span class="index-big" data-listening-name>—</span>
-        <span class="dim" data-listening-artist />
-      </a>
-      <a class="index-cell" data-prox href="/vibe-coder">
-        <span class="index-label mono">building</span>
-        <span class="index-big">Tapical</span>
-      </a>
-      <div class="index-cell index-links" data-prox>
-        <span class="index-label mono">elsewhere</span>
-        <a class="index-link" href="/music">music <span aria-hidden="true">→</span></a>
-        <a class="index-link" href="/dj">dj <span aria-hidden="true">→</span></a>
-        <a class="index-link" href="/lab">lab <span aria-hidden="true">→</span></a>
-      </div>
-    </section>
-  </>
-);
+        </div>
+      </section>
+    </>
+  );
+};

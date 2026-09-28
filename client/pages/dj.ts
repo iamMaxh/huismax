@@ -4,7 +4,7 @@ import { player } from '../lib/player';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
 
-type Mix = { id: string; title: string; audioUrl?: string };
+type Mix = { id: string; no: string; title: string; audioUrl: string };
 
 export const initDJ: PageInit = (main, scope) => {
   const mixes = readJSON<Mix[]>('mix-data', main) ?? [];
@@ -12,14 +12,15 @@ export const initDJ: PageInit = (main, scope) => {
   const clockEl = $('[data-dj-clock]', main)!;
   const kicker = $('[data-dj-kicker]', main)!;
   const latestBtn = $<HTMLButtonElement>('.console-latest', main);
-  const latest = mixes[mixes.length - 1];
+  // the session the console offers (newest playable one, chosen on the server), else the newest one
+  const latest = mixes.find((m) => m.id === latestBtn?.dataset.playMix) ?? mixes[0];
   const canvas = $<HTMLCanvasElement>('[data-dj-viz]', main)!;
 
   /* ——— live state ——— */
   let startedAt: number | null = null;
   const paint = (s: LiveStatus) => {
-    title.textContent = s.isLive ? s.sessionTitle ?? 'live' : latest ? latest.title.replace(/^\d+ — /, '') : 'first transmission soon';
-    kicker.textContent = s.isLive ? 'now playing' : latest ? `latest · ${latest.title.slice(0, 3)}` : 'archive';
+    title.textContent = s.isLive ? s.sessionTitle ?? 'live' : latest ? latest.title : 'first transmission soon';
+    kicker.textContent = s.isLive ? 'now playing' : latest ? `latest · ${latest.no}` : 'archive';
     if (latestBtn) latestBtn.hidden = s.isLive;
     startedAt = s.isLive && s.startedAt ? Date.parse(s.startedAt) : null;
     tickClock();
@@ -55,7 +56,7 @@ export const initDJ: PageInit = (main, scope) => {
     if (!mix?.audioUrl) return;
     const ps = player.state();
     if (ps.source?.id === mix.id) player.toggle();
-    else player.play({ kind: 'mix', id: mix.id, title: mix.title, url: mix.audioUrl });
+    else player.play({ kind: 'mix', id: mix.id, title: `${mix.no} — ${mix.title}`, url: mix.audioUrl });
   });
 
   /* ——— static mini waveforms per mix, seeded by id ——— */

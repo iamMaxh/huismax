@@ -6,12 +6,12 @@ import { Listening } from './listening';
  * Persistent bottom player. Lives outside <main> so the client router never re-renders it,
  * which keeps audio playing across page changes.
  */
-export const AudioBar = ({ live }: { live: LiveStatus }) => (
+export const AudioBar = ({ live, dj = true }: { live: LiveStatus; dj?: boolean }) => (
   <aside class="audiobar" data-audiobar data-state={live.isLive ? 'live' : 'idle'} aria-label="player">
     <div class="audiobar-inner">
       <Listening class="audiobar-listening" />
       <LiveMark live={live} />
-      <a class="audiobar-channel" href="/dj">huismax dj channel</a>
+      {dj ? <a class="audiobar-channel" href="/dj">huismax dj channel</a> : <span class="audiobar-channel">huismax dj channel</span>}
       <span class="audiobar-title" data-player-title>{live.sessionTitle ?? ''}</span>
       <div class="audiobar-progress" data-player-progress hidden>
         <span data-player-time>0:00</span>
