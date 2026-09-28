@@ -4,3 +4,4 @@ src/generated/
 .wrangler/
 .dev.vars
 dist/
+.test-build/

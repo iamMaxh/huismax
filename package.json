@@ -5,7 +5,8 @@
     "dev": "wrangler dev",
     "build": "node scripts/build.mjs",
     "deploy": "wrangler deploy",
-    "typecheck": "node scripts/build.mjs && tsc -p . && tsc -p client"
+    "typecheck": "node scripts/build.mjs && tsc -p . && tsc -p client",
+    "test": "node scripts/test.mjs"
   },
   "dependencies": {
     "hono": "^4.13.9"
