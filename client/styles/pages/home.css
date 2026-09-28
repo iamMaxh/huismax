@@ -77,7 +77,8 @@
   position: absolute;
   bottom: -2.4em;
   min-height: 1.5em;
-  color: var(--fg-2);
+  font-size: 10px;
+  color: var(--fg-3);
 }
 .mood-caption:not(:empty)::after { content: '▮'; margin-left: 2px; animation: blink 1s steps(1) infinite; }
 
@@ -162,12 +163,10 @@ a.index-cell:hover { background: var(--bg-2); }
 .presence-line { font-size: var(--t-lg); letter-spacing: -0.02em; line-height: 1.2; }
 .presence-line .live-mark { font-size: var(--t-sm); gap: 10px; }
 .presence-line .live-dot { width: 9px; height: 9px; }
-.presence-sub { color: var(--fg-3); }
+.presence-sub { font-size: 10px; color: var(--fg-3); }
 .presence-sub a:hover { color: var(--fg); }
 .presence[data-live='off'] .presence-on,
 .presence[data-live='on'] .presence-off { display: none; }
-.home-hero:not([data-mood='none']) .presence { opacity: 0.35; }
-.presence { transition: opacity var(--mid) var(--ease); }
 
 .index-art { width: 72px; height: 72px; background: var(--bg-3); overflow: hidden; margin-bottom: 6px; }
 .index-art img { width: 100%; height: 100%; object-fit: cover; }
@@ -185,5 +184,18 @@ a.index-cell:hover { background: var(--bg-2); }
   transition: color var(--fast);
 }
 .identity-ext:hover, .identity-ext:focus-visible { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
-.presence-profile { justify-self: start; color: var(--fg-3); margin-top: 4px; transition: color var(--fast); }
-.presence-profile:hover, .presence-profile:focus-visible { color: var(--fg); }
+.presence-profile {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font-size: var(--t-sm);
+  color: var(--fg);
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.presence-profile:hover, .presence-profile:focus-visible { background: var(--fg); border-color: var(--fg); color: var(--bg); }

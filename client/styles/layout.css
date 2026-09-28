@@ -131,7 +131,7 @@ main > *:nth-child(n + 4) { animation-delay: 240ms; }
   gap: 20px;
   font: 400 var(--t-xs)/1 var(--font-mono);
 }
-.audiobar-channel { color: var(--fg-2); white-space: nowrap; }
+.audiobar-channel { font-size: 10px; color: var(--fg-2); white-space: nowrap; }
 .audiobar-channel:hover { color: var(--fg); }
 .audiobar-title {
   flex: 1;
