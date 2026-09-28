@@ -5,6 +5,11 @@
   "compatibility_date": "2025-09-01",
   // Bundles client TS + CSS into public/assets before every dev / deploy.
   "build": { "command": "node scripts/build.mjs", "watch_dir": "client" },
+  // Cloudflare attaches these domains (DNS + HTTPS) on every deploy.
+  "routes": [
+    { "pattern": "huismax.com", "custom_domain": true },
+    { "pattern": "www.huismax.com", "custom_domain": true }
+  ],
   "assets": { "directory": "./public", "binding": "ASSETS" },
   "vars": {
     // Flip to "true" to go live without KV. With the STATE KV bound, POST /api/live-status wins.
