@@ -23,10 +23,20 @@ export function validateReply(input: Record<string, unknown>) {
 export const destination = (env: Env, s: Settings) => s.replyTo || env.REPLY_TO || '';
 export const emailReady = (env: Env, s: Settings) => !!(env.RESEND_API_KEY && destination(env, s));
 
+/** An IPv6 visitor controls a whole /64, so they are counted per /64, not per address. */
+export function ipBucket(ip: string) {
+  if (!ip.includes(':')) return ip;
+  const [head, tail = ''] = ip.toLowerCase().split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const groups = ip.includes('::') ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : h;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
+
 /** Rate limit per visitor: one message a minute, 10 a day. Keyed by a hash of the IP, never the IP itself. */
 export async function allowed(env: Env, ip: string) {
   if (!env.STATE) return true;
-  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`reply:${ip}`)))]
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`reply:${ipBucket(ip)}`)))]
     .slice(0, 8)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
@@ -37,6 +47,18 @@ export async function allowed(env: Env, ip: string) {
     env.STATE.put(`reply:day:${h}`, String(Number(day ?? 0) + 1), { expirationTtl: 86400 }),
   ]);
   return true;
+}
+
+// Site-wide caps, counted in D1 (consistent, unlike KV): the per-visitor limit can be dodged with many addresses.
+const HOURLY_CAP = 20;
+const DAILY_EMAILS = 50; // Resend's free tier sends 100 a day
+
+const since = (ms: number) => new Date(Date.now() - ms).toISOString();
+
+/** False once the site has taken HOURLY_CAP messages in the last hour, from anyone. */
+export async function underCap(env: Env) {
+  const row = await env.DB!.prepare('SELECT COUNT(*) AS n FROM messages WHERE created_at > ?').bind(since(3600_000)).first<{ n: number }>();
+  return (row?.n ?? 0) < HOURLY_CAP;
 }
 
 export async function saveMessage(env: Env, m: { name: string; email: string; body: string }): Promise<Message> {
@@ -51,6 +73,9 @@ export async function saveMessage(env: Env, m: { name: string; email: string; bo
 export async function emailMessage(env: Env, s: Settings, m: Message): Promise<boolean> {
   if (!emailReady(env, s)) return false;
   try {
+    // past the daily cap, messages are only kept in /admin
+    const sent = await env.DB!.prepare('SELECT COUNT(*) AS n FROM messages WHERE emailed = 1 AND created_at > ?').bind(since(86400_000)).first<{ n: number }>();
+    if ((sent?.n ?? 0) >= DAILY_EMAILS) return false;
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },

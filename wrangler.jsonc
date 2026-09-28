@@ -26,8 +26,9 @@
   // No id needed: wrangler creates the namespace on first deploy.
   "kv_namespaces": [{ "binding": "STATE" }],
   // CMS content (src/lib/cms.ts). Created on first deploy like STATE; the worker applies migrations/ itself.
-  "d1_databases": [{ "binding": "DB", "migrations_dir": "migrations" }],
+  // Named so a retried deploy finds the database instead of trying to create it twice.
+  "d1_databases": [{ "binding": "DB", "database_name": "huismax-db", "migrations_dir": "migrations" }],
   // Uploaded photos and DJ covers (src/lib/media.ts). Also created on first deploy.
-  "r2_buckets": [{ "binding": "MEDIA" }],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "huismax-media" }],
   "observability": { "enabled": true }
 }

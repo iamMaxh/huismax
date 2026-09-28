@@ -11,7 +11,7 @@ import { ensureDb } from './lib/db';
 import * as cms from './lib/cms';
 import { FALLBACK_IDENTITIES, items, photos, sessions, settings, site, type Site } from './lib/content';
 import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, validKey } from './lib/media';
-import { allowed, emailMessage, listMessages, saveMessage, validateReply } from './lib/reply';
+import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
 import { adminData, type AdminData } from './lib/admin-data';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
@@ -124,7 +124,8 @@ app.get('/404', (c) => notFound(c));
 const notFound = (c: C): Promise<Response> => page(c, 'not-found', '404', () => <NotFound path={c.req.path} />, 404);
 
 // Trailing slashes → canonical path.
-app.get('/:p{.+/$}', (c) => c.redirect(c.req.path.replace(/\/+$/, '') || '/', 301));
+// Leading slashes are collapsed too, so `//evil.example/` can't become a redirect to another site.
+app.get('/:p{.+/$}', (c) => c.redirect(`/${c.req.path.replace(/^[/\\]+|\/+$/g, '')}`, 301));
 
 /* ——— uploaded images ——— */
 
@@ -147,6 +148,9 @@ app.get('/media/:key{.+}', async (c) => {
 app.post('/api/reply', async (c) => {
   if (!sameOrigin(c)) return c.json({ error: 'bad origin' }, 403);
   if (!c.env.DB) return c.json({ error: 'replies are offline right now' }, 503);
+  const s = await settings(c.env);
+  // hiding the page in /admin also closes the form
+  if (!s.pages.reply) return c.json({ error: 'not found' }, 404);
   const b = await c.req.json<Record<string, unknown>>().catch(() => null);
   if (!b) return c.json({ error: 'invalid json' }, 400);
   if (typeof b.website === 'string' && b.website) return c.json({ ok: true }); // honeypot: bots fill every field
@@ -157,9 +161,8 @@ app.post('/api/reply', async (c) => {
     return c.json({ error: (e as Error).message }, 400);
   }
   if (!(await allowed(c.env, c.req.header('CF-Connecting-IP') ?? 'local'))) return c.json({ error: 'one message a minute, please' }, 429);
-  await ensureDb(c.env);
+  if (!(await underCap(c.env))) return c.json({ error: 'too many messages right now. try again later' }, 429);
   const saved = await saveMessage(c.env, m);
-  const s = await settings(c.env);
   c.executionCtx.waitUntil(emailMessage(c.env, s, saved));
   return c.json({ ok: true });
 });
@@ -224,6 +227,7 @@ app.post('/admin/login', async (c) => {
 });
 
 app.post('/admin/logout', (c) => {
+  if (!sameOrigin(c)) return c.text('bad origin', 403);
   deleteCookie(c, COOKIE, { path: '/' });
   return c.redirect('/admin', 303);
 });
