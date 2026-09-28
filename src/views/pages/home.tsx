@@ -78,6 +78,10 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
           <div class="who-wrap">
             <Headline text={settings.headline} />
             {settings.tagline && <p class="who-tagline">{settings.tagline}</p>}
+            <button type="button" class="home-chat" data-chat-open aria-haspopup="dialog" aria-expanded="false">
+              <span class="home-chat-dot" aria-hidden="true" />
+              chat with max's ai assistant <span aria-hidden="true">→</span>
+            </button>
           </div>
           {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
           <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">

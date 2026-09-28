@@ -6,6 +6,7 @@ import { paintLive, startLivePolling } from './lib/live';
 import { startRouter } from './lib/router';
 import { startPalette } from './lib/palette';
 import { startMenu } from './lib/menu';
+import { startChat } from './lib/chat';
 import { startAudioBar, playLive } from './lib/audiobar';
 import { initHome } from './pages/home';
 import { initAlbum } from './pages/album';
@@ -48,6 +49,7 @@ const router = startRouter({
 
 startPalette(router.navigate);
 startMenu(router.navigate);
+startChat();
 startAudioBar();
 startLivePolling();
 

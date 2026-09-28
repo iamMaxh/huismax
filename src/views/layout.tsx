@@ -69,6 +69,9 @@ export const Layout = ({ page, title, description, live, site, children }: Props
                 <LiveMark live={live} />
               </a>
             )}
+            <button class="menu-btn chat-btn" type="button" data-chat-open aria-haspopup="dialog" aria-expanded="false">
+              <span class="chat-btn-long">live </span>chat
+            </button>
             <button class="menu-btn" type="button" data-menu-open aria-haspopup="dialog">
               menu
             </button>

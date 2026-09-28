@@ -221,3 +221,21 @@ a.index-cell:hover { background: var(--bg-2); }
   transition: background var(--fast), color var(--fast), border-color var(--fast);
 }
 .presence-profile:hover, .presence-profile:focus-visible { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+
+/* top of the homepage: opens the live chat with Max's AI assistant */
+.home-chat {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-top: 18px;
+  padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font: 500 var(--t-xs)/1 var(--font-mono);
+  color: var(--fg);
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.home-chat:hover, .home-chat:focus-visible, .home-chat[aria-expanded='true'] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.home-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
