@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "huismax",
+  "main": "src/index.tsx",
+  "compatibility_date": "2025-09-01",
+  // Bundles client TS + CSS into public/assets before every dev / deploy.
+  "build": { "command": "node scripts/build.mjs", "watch_dir": "client" },
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "vars": {
+    // Flip to "true" to go live without KV. With the STATE KV bound, POST /api/live-status wins.
+    "LIVE": "false",
+    "LIVE_STREAM_URL": "",
+    "LIVE_SESSION_TITLE": ""
+  },
+  // Optional, free tier: create with `npx wrangler kv namespace create STATE` and paste the id.
+  // Enables live toggling without a redeploy and the lab guestbook.
+  // "kv_namespaces": [{ "binding": "STATE", "id": "<your-kv-id>" }],
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,6 @@
+.nf-page { min-height: calc(100dvh - var(--header-h) - 160px); display: flex; flex-direction: column; justify-content: center; }
+.nf-head .page-title { font-variant-numeric: tabular-nums; }
+.nf-line { font-size: var(--t-sm); padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-transform: none; }
+.nf-routes { display: flex; flex-wrap: wrap; gap: 8px 22px; padding-top: 22px; }
+.nf-routes a { color: var(--fg-2); text-transform: none; }
+.nf-routes a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 4px; }

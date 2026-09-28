@@ -1,0 +1,114 @@
+/* ——— live mark: the only place red is used ——— */
+.live-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 var(--t-xs)/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--fg-3);
+}
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  position: relative;
+}
+.live-mark[data-live='on'] { color: var(--live); }
+.live-mark[data-live='on'] .live-dot { background: var(--live); border-color: var(--live); }
+.live-mark[data-live='on'] .live-dot::after {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: pulse 1.8s var(--ease) infinite;
+}
+@keyframes pulse { to { transform: scale(3.2); opacity: 0; } }
+
+.live-mark-xl { font-size: var(--t-sm); gap: 10px; }
+.live-mark-xl .live-dot { width: 10px; height: 10px; }
+
+/* ——— page head ——— */
+.page-head {
+  padding: clamp(48px, 10vh, 120px) 0 clamp(32px, 6vh, 64px);
+  display: grid;
+  gap: 20px;
+}
+.crumb { color: var(--fg-3); }
+.crumb a:hover { color: var(--fg); }
+.page-title {
+  font-weight: 500;
+  font-size: var(--t-hero);
+  line-height: 0.88;
+  letter-spacing: -0.055em;
+  margin-left: -0.04em;
+}
+
+.section-label {
+  color: var(--fg-3);
+  font-weight: 400;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.section-row { display: flex; justify-content: space-between; align-items: end; gap: 16px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.section-row .section-label { border: 0; margin: 0; }
+.section-row .seg { margin-bottom: 10px; }
+.label { color: var(--fg-3); display: block; margin-bottom: 8px; }
+
+/* ——— segmented toolbar ——— */
+.toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+.seg button {
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--fg-3);
+  font: inherit;
+  transition: color var(--fast), background var(--fast);
+}
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed='true'] { color: var(--bg); background: var(--fg); }
+.seg sup { font-size: 9px; margin-left: 2px; opacity: 0.7; }
+
+/* ——— buttons ——— */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 22px;
+  border-radius: 999px;
+  background: var(--fg); color: var(--bg);
+  font: 500 var(--t-sm)/1 var(--font-mono);
+  transition: transform var(--fast) var(--ease), background var(--mid), color var(--mid), opacity var(--mid);
+}
+.btn-primary:not(:disabled):hover { transform: translateX(3px); }
+.btn-primary:disabled { background: transparent; color: var(--fg-3); box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn-line {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font: 400 var(--t-xs)/1 var(--font-mono);
+  transition: border-color var(--fast), background var(--fast), color var(--fast);
+}
+.btn-line:not(:disabled):hover { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+.btn-line:disabled { color: var(--fg-3); }
+
+/* ——— equalizer glyph ——— */
+.eq { display: inline-flex; align-items: end; gap: 2px; height: 14px; }
+.eq i { width: 2px; height: 100%; background: currentColor; transform-origin: bottom; animation: eq 1s ease-in-out infinite alternate; }
+.eq i:nth-child(2) { animation-duration: 0.7s; animation-delay: -0.2s; }
+.eq i:nth-child(3) { animation-duration: 1.2s; animation-delay: -0.5s; }
+.eq i:nth-child(4) { animation-duration: 0.85s; animation-delay: -0.1s; }
+.eq i:nth-child(5) { animation-duration: 1.05s; animation-delay: -0.35s; }
+@keyframes eq { from { transform: scaleY(0.15); } to { transform: scaleY(1); } }
+.eq-lg { height: 28px; gap: 3px; }
+.eq-lg i { width: 3px; }
+
+/* ——— placeholder image grain ——— */
+.ph { position: relative; overflow: hidden; }
+.ph::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
