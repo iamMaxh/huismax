@@ -57,7 +57,8 @@ async function readSource(env: Env, mock?: string | null): Promise<LiveOverride>
 export async function setLiveStatus(env: Env, next: LiveOverride): Promise<LiveStatus> {
   if (!env.STATE) throw new Error('STATE KV namespace is not bound');
   const prev = (await env.STATE.get<LiveOverride>(KV_KEY, 'json')) ?? {};
-  const merged: LiveOverride = { ...prev, ...next, updatedAt: new Date().toISOString() };
+  const defined = Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined));
+  const merged: LiveOverride = { ...prev, ...defined, updatedAt: new Date().toISOString() };
   if (next.isLive && !prev.isLive) merged.startedAt = next.startedAt ?? new Date().toISOString();
   if (next.isLive === false) merged.startedAt = undefined;
   await env.STATE.put(KV_KEY, JSON.stringify(merged));

@@ -33,25 +33,30 @@ public/           static files served as-is
 - Mixes: `src/data/mixes.ts`. Set `audioUrl` to make a mix playable in the global player.
 - Runs, projects, music, now: the other files in `src/data/`.
 
-## Live status
+## Admin, status and live
 
-`GET /api/live-status` → `{ isLive, label, streamUrl, sessionTitle, startedAt, updatedAt }`. The homepage, DJ page, lab radio, header and bottom bar poll it every 30s.
+`/admin` (not linked anywhere, noindex). Password = the `ADMIN_TOKEN` secret.
 
-Simplest: set `LIVE`, `LIVE_STREAM_URL`, `LIVE_SESSION_TITLE` in `wrangler.jsonc` (or in the dashboard under Settings → Variables).
+- **status**: presets (locked in, afk, touching grass…) or any custom text; shown under the identities on the homepage.
+- **♪ listening**: track + artist, shown under the status.
+- **huismax dj channel**: going live replaces the status with `● LIVE / huismax dj channel` everywhere; ending the session brings the status back.
 
-Without redeploying (optional, free):
+Everything is stored in the `STATE` KV namespace (created automatically on first deploy). Public pages poll `GET /api/presence` every 15s, so changes show up within about a minute (KV is eventually consistent across regions).
+
+Scripts / shortcuts can write with `Authorization: Bearer <ADMIN_TOKEN>`:
 
 ```
-npx wrangler kv namespace create STATE        # paste the id into wrangler.jsonc, uncomment kv_namespaces
-npx wrangler secret put LIVE_ADMIN_TOKEN
-curl -X POST https://<site>/api/live-status -H "Authorization: Bearer <token>" \
+curl -X POST https://<site>/api/live-status -H "Authorization: Bearer $TOKEN" \
   -d '{"isLive":true,"sessionTitle":"late set","streamUrl":"https://…/stream.mp3"}'
-curl -X POST https://<site>/api/live-status -H "Authorization: Bearer <token>" -d '{"isLive":false}'
+curl -X POST https://<site>/api/admin/presence -H "Authorization: Bearer $TOKEN" \
+  -d '{"status":"probably coding","listening":{"title":"Japanese Denim","artist":"Daniel Caesar"}}'
 ```
 
-The same KV namespace turns on the lab guestbook. For a real stream later, replace `readSource` in `src/lib/live.ts`.
+`GET /api/live-status` stays available on its own. For a real stream later, replace `readSource` in `src/lib/live.ts`.
 
 ## Deploy from GitHub (Cloudflare dashboard)
 
 Workers & Pages → Create → Import a repository → pick this repo.
 Build command: leave empty. Deploy command: `npx wrangler deploy`. Every push to `main` deploys.
+
+Then: the Worker → Settings → Variables and Secrets → add a **Secret** `ADMIN_TOKEN` (your admin password).

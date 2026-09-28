@@ -8,7 +8,7 @@ const outdir = 'public/assets';
 await rm(outdir, { recursive: true, force: true });
 
 const result = await build({
-  entryPoints: { app: 'client/main.ts', style: 'client/styles/index.css' },
+  entryPoints: { app: 'client/main.ts', admin: 'client/admin.ts', style: 'client/styles/index.css' },
   bundle: true,
   minify: true,
   format: 'esm',
@@ -24,8 +24,8 @@ const files = Object.keys(result.metafile.outputs).map((f) => '/' + path.relativ
 const pick = (prefix, ext) => files.find((f) => f.startsWith(`/assets/${prefix}-`) && f.endsWith(ext));
 
 await mkdir('src/generated', { recursive: true });
-const manifest = `export const assets = ${JSON.stringify({ js: pick('app', '.js'), css: pick('style', '.css') }, null, 2)} as const;\n`;
+const manifest = `export const assets = ${JSON.stringify({ js: pick('app', '.js'), admin: pick('admin', '.js'), css: pick('style', '.css') }, null, 2)} as const;\n`;
 // Only touch the file when hashes change, so the dev server doesn't loop on its own output.
 const prev = await readFile('src/generated/assets.ts', 'utf8').catch(() => '');
 if (prev !== manifest) await writeFile('src/generated/assets.ts', manifest);
-console.log('client built →', pick('app', '.js'), pick('style', '.css'));
+console.log('client built →', pick('app', '.js'), pick('admin', '.js'), pick('style', '.css'));

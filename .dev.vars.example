@@ -1,5 +1,5 @@
 # Copy to .dev.vars for local dev.
 # Allows /api/live-status?mock=live and ?live=1 on any page.
 ALLOW_MOCK=1
-# Required to toggle live status via POST /api/live-status (set in production with `wrangler secret put LIVE_ADMIN_TOKEN`).
-LIVE_ADMIN_TOKEN=dev-token
+# Required to toggle live status via /admin and the admin API (production: add it as a secret in the Cloudflare dashboard).
+ADMIN_TOKEN=dev-token

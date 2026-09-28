@@ -1,4 +1,5 @@
 import type { LiveStatus } from '../../lib/live';
+import type { Presence } from '../../lib/presence';
 import { photos } from '../../data/photos';
 import { mixes } from '../../data/mixes';
 import { runs } from '../../data/runs';
@@ -7,7 +8,8 @@ import { nowPlaying } from '../../data/music';
 import { now } from '../../data/now';
 import { LiveMark } from '../components/live';
 
-export const Home = ({ live }: { live: LiveStatus }) => {
+export const Home = ({ live, presence }: { live: LiveStatus; presence: Presence }) => {
+  const listening = presence.listening;
   const km = runs.reduce((s, r) => s + r.distanceKm, 0);
   const identities = [
     { href: '/photographer', name: 'Photographer', mood: 'photo', meta: `${photos.length} frames`, caption: photos[0].exposure },
@@ -27,6 +29,7 @@ export const Home = ({ live }: { live: LiveStatus }) => {
               MAX<span class="who-q">?</span>
             </span>
           </h1>
+          <div class="hero-side">
           <ol class="identities" data-identities>
             {identities.map((id, i) => (
               <li>
@@ -39,7 +42,23 @@ export const Home = ({ live }: { live: LiveStatus }) => {
               </li>
             ))}
           </ol>
+          {/* personal state; a live DJ session overrides it and it returns when the session ends */}
+          <div class="presence" data-presence data-live={live.isLive ? 'on' : 'off'} aria-live="polite">
+            <p class="presence-line presence-off">
+              <span data-presence-status>{presence.status}</span>
+            </p>
+            <p class="presence-sub presence-off mono" data-presence-listen hidden={!listening}>
+              ♪ {listening ? `${listening.title}${listening.artist ? ` — ${listening.artist}` : ''}` : ''}
+            </p>
+            <p class="presence-line presence-on">
+              <LiveMark live={live} />
+            </p>
+            <p class="presence-sub presence-on mono">
+              <a href="/dj">huismax dj channel</a>
+            </p>
+          </div>
           <p class="mood-caption mono" data-mood-caption aria-hidden="true" />
+          </div>
         </div>
       </section>
 
@@ -55,7 +74,7 @@ export const Home = ({ live }: { live: LiveStatus }) => {
       </section>
 
       <section class="home-index" aria-label="index">
-        <a class="index-cell" href="/now">
+        <a class="index-cell" data-prox href="/now">
           <span class="index-label mono">now</span>
           <ul class="index-list">
             {now.slice(0, 3).map((n) => (
@@ -65,17 +84,15 @@ export const Home = ({ live }: { live: LiveStatus }) => {
             ))}
           </ul>
         </a>
-        <a class="index-cell" href="/music">
+        <a class="index-cell" data-prox href="/music">
           <span class="index-label mono">listening</span>
-          <span class="index-big">{nowPlaying.title}</span>
-          <span class="dim">
-            {nowPlaying.artist} — {nowPlaying.album}
-          </span>
+          <span class="index-big" data-presence-track>{listening?.title ?? nowPlaying.title}</span>
+          <span class="dim" data-presence-artist>{listening ? listening.artist : nowPlaying.artist}</span>
           <span class="eq" aria-hidden="true">
             <i /><i /><i /><i />
           </span>
         </a>
-        <a class="index-cell" href="/vibe-coder">
+        <a class="index-cell" data-prox href="/vibe-coder">
           <span class="index-label mono">selected work</span>
           <ul class="index-list">
             {projects.slice(0, 4).map((p) => (
@@ -85,7 +102,7 @@ export const Home = ({ live }: { live: LiveStatus }) => {
             ))}
           </ul>
         </a>
-        <div class="index-cell index-links">
+        <div class="index-cell index-links" data-prox>
           <span class="index-label mono">elsewhere</span>
           <a class="index-link" href="/music">music <span aria-hidden="true">→</span></a>
           <a class="index-link" href="/lab">lab <span aria-hidden="true">→</span></a>

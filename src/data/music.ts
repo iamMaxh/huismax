@@ -1,4 +1,4 @@
-export const nowPlaying = { artist: 'Daniel Caesar', title: 'Always', album: 'Never Enough' };
+export const nowPlaying = { artist: 'Daniel Caesar', title: 'Japanese Denim', album: 'single' };
 
 export const artists = [
   { name: 'Daniel Caesar', note: 'first thing in the morning.' },

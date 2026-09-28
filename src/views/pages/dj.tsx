@@ -11,7 +11,7 @@ export const DJ = ({ live }: { live: LiveStatus }) => {
         <LiveMark live={live} class="live-mark-xl" />
       </PageHead>
 
-      <section class="console" aria-label="player">
+      <section class="console" aria-label="player" data-prox>
         <canvas class="console-viz" data-dj-viz aria-hidden="true" />
         <div class="console-bar">
           <div class="console-cell">

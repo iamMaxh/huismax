@@ -12,7 +12,7 @@ export const Lab = ({ live }: { live: LiveStatus }) => (
 
     <ol class="lab-list" data-lab>
       {entries.map((name, i) => (
-        <li class="lab-item" data-exp={name}>
+        <li class="lab-item" data-exp={name} data-prox>
           <button type="button" class="lab-toggle" aria-expanded="false" aria-controls={`exp-${i}`} data-lab-toggle>
             <span class="mono dim">{String(i + 1).padStart(3, '0')}</span>
             <span class="lab-name">{name}</span>

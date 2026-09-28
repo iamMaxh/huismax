@@ -12,8 +12,8 @@
     "LIVE_STREAM_URL": "",
     "LIVE_SESSION_TITLE": ""
   },
-  // Optional, free tier: create with `npx wrangler kv namespace create STATE` and paste the id.
-  // Enables live toggling without a redeploy and the lab guestbook.
-  // "kv_namespaces": [{ "binding": "STATE", "id": "<your-kv-id>" }],
+  // Free-tier KV for live status, personal status and the guestbook.
+  // No id needed: wrangler creates the namespace on first deploy.
+  "kv_namespaces": [{ "binding": "STATE" }],
   "observability": { "enabled": true }
 }

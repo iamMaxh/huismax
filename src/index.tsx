@@ -1,7 +1,11 @@
 import { Hono, type Context } from 'hono';
 import type { Child } from 'hono/jsx';
 import type { Env } from './lib/env';
+import { setCookie, deleteCookie } from 'hono/cookie';
 import { getLiveStatus, setLiveStatus, type LiveStatus } from './lib/live';
+import { getPresence, setPresence } from './lib/presence';
+import { checkPassword, COOKIE, isAdmin, sameOrigin, sessionValue } from './lib/auth';
+import { Admin, AdminLogin } from './views/admin';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
 import { Photographer } from './views/pages/photographer';
@@ -36,7 +40,10 @@ async function page(c: C, key: PageKey, title: string | undefined, body: (live: 
 
 /* ——— pages ——— */
 
-app.get('/', (c) => page(c, 'home', undefined, (live) => <Home live={live} />));
+app.get('/', async (c) => {
+  const presence = await getPresence(c.env);
+  return page(c, 'home', undefined, (live) => <Home live={live} presence={presence} />);
+});
 app.get('/photographer', (c) => page(c, 'photographer', 'Photographer', () => <Photographer />));
 app.get('/dj', (c) => page(c, 'dj', 'DJ', (live) => <DJ live={live} />));
 app.get('/trail-runner', (c) => page(c, 'trail-runner', 'Trail runner', () => <Trail />));
@@ -49,31 +56,94 @@ app.get('/404', (c) => page(c, 'not-found', '404', () => <NotFound path="/404" /
 // Trailing slashes → canonical path.
 app.get('/:p{.+/$}', (c) => c.redirect(c.req.path.replace(/\/+$/, '') || '/', 301));
 
-/* ——— live status ——— */
+/* ——— live + presence (public) ——— */
 
 app.get('/api/live-status', async (c) => {
   const status = await getLiveStatus(c.env, mockParam(c));
   return c.json(status, 200, { 'Cache-Control': 'no-store' });
 });
 
+/** Everything the public pages poll: live status + personal status + listening. */
+app.get('/api/presence', async (c) => {
+  const [live, presence] = await Promise.all([getLiveStatus(c.env, mockParam(c)), getPresence(c.env)]);
+  return c.json({ live, ...presence }, 200, { 'Cache-Control': 'no-store' });
+});
+
+/* ——— admin ——— */
+
+app.use('/admin/*', async (c, next) => {
+  await next();
+  c.header('X-Robots-Tag', 'noindex');
+  c.header('Cache-Control', 'no-store');
+});
+
+app.get('/admin', async (c) => {
+  c.header('X-Robots-Tag', 'noindex');
+  c.header('Cache-Control', 'no-store');
+  if (!c.env.ADMIN_TOKEN) return c.html(<AdminLogin error="ADMIN_TOKEN secret is not set." />, 503);
+  if (!(await isAdmin(c))) return c.html(<AdminLogin />);
+  const [live, presence] = await Promise.all([getLiveStatus(c.env), getPresence(c.env)]);
+  return c.html(<Admin live={live} presence={presence} kv={!!c.env.STATE} />);
+});
+
+app.post('/admin/login', async (c) => {
+  if (!sameOrigin(c)) return c.text('bad origin', 403);
+  const ip = c.req.header('CF-Connecting-IP') ?? 'local';
+  const rateKey = `admin:fail:${ip}`;
+  const fails = Number((await c.env.STATE?.get(rateKey)) ?? 0);
+  if (fails >= 5) return c.html(<AdminLogin error="too many tries. wait a few minutes." />, 429);
+
+  const form = await c.req.parseBody();
+  if (!checkPassword(c.env, String(form.password ?? ''))) {
+    await c.env.STATE?.put(rateKey, String(fails + 1), { expirationTtl: 300 });
+    return c.html(<AdminLogin error="wrong password." />, 401);
+  }
+  setCookie(c, COOKIE, await sessionValue(c.env), {
+    path: '/', httpOnly: true, secure: new URL(c.req.url).protocol === 'https:', sameSite: 'Strict', maxAge: 60 * 60 * 24 * 30,
+  });
+  return c.redirect('/admin', 303);
+});
+
+app.post('/admin/logout', (c) => {
+  deleteCookie(c, COOKIE, { path: '/' });
+  return c.redirect('/admin', 303);
+});
+
+/** Admin writes. Cookie (from /admin) or `Authorization: Bearer <ADMIN_TOKEN>` (scripts, shortcuts). */
+const guard = async (c: C) => {
+  if (!(await isAdmin(c)) || !sameOrigin(c)) return c.json({ error: 'unauthorized' }, 401);
+  if (!c.env.STATE) return c.json({ error: 'STATE KV namespace not bound' }, 501);
+  return null;
+};
+const body = (c: C) => c.req.json<Record<string, unknown>>().catch(() => null);
+const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : undefined);
+
 /**
- * Toggle live without a redeploy (needs the STATE KV binding + LIVE_ADMIN_TOKEN secret):
  *   curl -X POST https://<site>/api/live-status -H "Authorization: Bearer $TOKEN" \
  *        -d '{"isLive":true,"sessionTitle":"late set","streamUrl":"https://…"}'
  */
 app.post('/api/live-status', async (c) => {
-  const token = c.env.LIVE_ADMIN_TOKEN;
-  if (!token || c.req.header('Authorization') !== `Bearer ${token}`) return c.json({ error: 'unauthorized' }, 401);
-  if (!c.env.STATE) return c.json({ error: 'STATE KV namespace not bound' }, 501);
-  const body = await c.req.json<Record<string, unknown>>().catch(() => null);
-  if (!body) return c.json({ error: 'invalid json' }, 400);
-  const str = (v: unknown) => (typeof v === 'string' ? v.slice(0, 300) : undefined);
+  const denied = await guard(c);
+  if (denied) return denied;
+  const b = await body(c);
+  if (!b) return c.json({ error: 'invalid json' }, 400);
+  const url = str(b.streamUrl, 300);
+  if (url && !/^https:\/\//.test(url)) return c.json({ error: 'stream url must start with https://' }, 400);
   const status = await setLiveStatus(c.env, {
-    isLive: typeof body.isLive === 'boolean' ? body.isLive : undefined,
-    sessionTitle: str(body.sessionTitle),
-    streamUrl: str(body.streamUrl),
+    isLive: typeof b.isLive === 'boolean' ? b.isLive : undefined,
+    sessionTitle: str(b.sessionTitle, 120),
+    streamUrl: url,
   });
   return c.json(status);
+});
+
+/** { status?: string, listening?: { title, artist } | null } */
+app.post('/api/admin/presence', async (c) => {
+  const denied = await guard(c);
+  if (denied) return denied;
+  const b = await body(c);
+  if (!b) return c.json({ error: 'invalid json' }, 400);
+  return c.json(await setPresence(c.env, b));
 });
 
 /* ——— guestbook (lab) ——— */

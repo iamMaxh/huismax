@@ -5,6 +5,7 @@ export type Env = {
   LIVE?: string;
   LIVE_STREAM_URL?: string;
   LIVE_SESSION_TITLE?: string;
-  LIVE_ADMIN_TOKEN?: string;
+  /** Admin password + API bearer token. Set as a secret. */
+  ADMIN_TOKEN?: string;
   ALLOW_MOCK?: string;
 };
