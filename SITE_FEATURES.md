@@ -58,6 +58,7 @@ Verified against the production code and the live site on **2026-09-29**.
   - While Max is live, it shows LIVE · huismax dj channel and a **listen** button.
   - While a DJ mix plays, it shows the title, a progress bar (click it to seek) and pause/resume.
   - **Space** toggles play/pause when focus isn't on a link, button or field.
+  - While Max is live, **listen** on the homepage starts the set and opens `/music`, where the album art of what's playing shows. On every other page it just plays.
 - **Seamless navigation:** moving between pages doesn't reload the site, so **audio keeps playing and the chat stays open** while visitors browse.
 - **Page header:** a breadcrumb `index / <page>`, where "index" links home. Each page can show a one-line intro written by Max.
 - **Footer:** "huismax © 2026", plus any external links Max adds (currently none).
@@ -126,7 +127,7 @@ Verified against the production code and the live site on **2026-09-29**.
   - **Spotify card:** album art, a state label ("now playing", "paused" or "last played · 2 h ago"), the track, the artist, and a progress bar while playing or paused. Clicking it opens the track on Spotify.
   - A **"spotify profile ↗"** link.
   - A manual "♪ title — artist" line appears when Max sets one and Spotify isn't showing a track.
-  - While Max is live, the whole block is replaced by **● LIVE** and a "huismax dj channel" link to `/dj`. It returns when the set ends.
+  - While Max is live, the block shows **● LIVE** and a "huismax dj channel" card: the DJ spectrum stands where the album art was, and the card opens `/dj`. It returns when the set ends.
 - **Identity list:**
   - Numbered rows (01, 02, …), each linking to its page.
   - Hovering or focusing a row types a short caption and shifts the page's mood.

@@ -1,5 +1,8 @@
 import { $, $$, cssVar, fitCanvas, reducedMotion } from '../lib/dom';
 import { tickListening } from '../lib/listening';
+import { live } from '../lib/live';
+import { player } from '../lib/player';
+import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
 
 const GLYPHS = '01{}[]<>/\\=+*;:._-~$#&|?!abcdefmx';
@@ -64,7 +67,51 @@ export const initHome: PageInit = (main, scope) => {
   scope.add(() => clearInterval(tick));
 
   rain($<HTMLCanvasElement>('[data-rain]', main)!, scope);
+  const liveViz = $<HTMLCanvasElement>('[data-live-viz]', main);
+  if (liveViz) spectrum(liveViz, scope);
 };
+
+/**
+ * The DJ console's spectrum at album-art size, while the channel is live: the real audio once it plays on this page
+ * (the stream allows Web Audio), before that the channel's pulse. Off air the card is hidden and nothing is drawn.
+ */
+function spectrum(canvas: HTMLCanvasElement, scope: Parameters<PageInit>[1]) {
+  const { ctx, size } = fitCanvas(canvas, scope);
+  const n = 20;
+  const data = new Uint8Array(n);
+  const peaks = new Float32Array(n);
+  let fg = cssVar('--fg');
+  let red = cssVar('--live');
+  scope.on(window, 'themechange', () => ((fg = cssVar('--fg')), (red = cssVar('--live'))));
+  const draw = (t: number) => {
+    if (!live.get().isLive || !size.w) return;
+    readSpectrum(data, t, player.state().status === 'playing' ? 1 : 0.55);
+    const { w, h } = size;
+    const bw = w / n;
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = fg;
+    ctx.fillRect(0, h / 2, w, 1);
+    for (let i = 0; i < n; i++) {
+      const v = data[i] / 255;
+      peaks[i] = Math.max(v, peaks[i] - 0.006);
+      const bh = Math.max(1, v * h * 0.42);
+      const x = i * bw + 1;
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = fg;
+      ctx.fillRect(x, h / 2 - bh, Math.max(1, bw - 3), bh * 2);
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = red;
+      ctx.fillRect(x, h / 2 - peaks[i] * h * 0.42 - 3, Math.max(1, bw - 3), 1);
+    }
+    ctx.globalAlpha = 1;
+  };
+  if (!reducedMotion()) return scope.loop(draw);
+  // reduced motion: a still frame, redrawn once a second so it appears when the channel goes live
+  const id = setInterval(() => draw(0), 1000);
+  scope.add(() => clearInterval(id));
+  draw(0);
+}
 
 /**
  * "WHO IS MAX?" types itself on arrival behind a blinking "_": the first line quickly, a beat, then the last word.

@@ -56,8 +56,9 @@ export function startAudioBar(navigate: (href: string) => void) {
     // "listen" (nothing playing yet), not pause or resume
     const starting = !ps.source || ps.status === 'error';
     playLive();
-    // the live set plays over the music page, where what's on shows with its album art (never a hidden page)
-    if (starting && live.get().isLive && location.pathname !== '/music' && paletteLinks().some((p) => p.href === '/music')) navigate('/music');
+    // from the homepage the live set plays over the music page, where what's on shows with its album art
+    // (elsewhere, /dj included, it plays where you are; never to a hidden page)
+    if (starting && live.get().isLive && location.pathname === '/' && paletteLinks().some((p) => p.href === '/music')) navigate('/music');
   });
   progress.addEventListener('click', (e) => {
     const r = progress.querySelector('.bar')!.getBoundingClientRect();

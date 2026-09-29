@@ -239,3 +239,8 @@ a.index-cell:hover { background: var(--bg-2); }
 }
 .home-chat:hover, .home-chat:focus-visible, .home-chat[aria-expanded='true'] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
 .home-chat-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* live: the DJ channel's spectrum in the album art's place (client/pages/home.ts) */
+[data-live-card] .listening-art { background: var(--bg-2); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--live) 45%, var(--line)); }
+.live-viz { display: block; width: 100%; height: 100%; }
+[data-live-card] .listening-artist:empty { display: none; }

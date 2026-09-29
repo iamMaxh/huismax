@@ -102,10 +102,18 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
             <p class="presence-line presence-on">
               <LiveMark live={live} />
             </p>
+            {/* live: the DJ console's spectrum where the album art was (client/pages/home.ts); the card opens the channel */}
             {settings.pages.dj && (
-              <p class="presence-sub presence-on mono">
-                <a href="/dj">huismax dj channel</a>
-              </p>
+              <a class="listening listening-feature presence-on" href="/dj" data-live-card>
+                <span class="listening-art" aria-hidden="true">
+                  <canvas class="live-viz" data-live-viz />
+                </span>
+                <span class="listening-text">
+                  <span class="listening-state mono dim">on air</span>
+                  <span class="listening-name">huismax dj channel</span>
+                  <span class="listening-artist" data-live-session>{live.sessionTitle ?? ''}</span>
+                </span>
+              </a>
             )}
           </div>
           <div class="hero-side">
@@ -142,8 +150,7 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
           <span class="index-label mono">now</span>
           <ul class="index-list">
             <li>
-              <span class="mono dim">right now</span> <span class="doing-dot" aria-hidden="true" />
-              <span data-presence-status>{presence.status}</span>
+              <span class="mono dim">right now</span> <span data-presence-status>{presence.status}</span>
             </li>
             {now.map((n) => (
               <li>

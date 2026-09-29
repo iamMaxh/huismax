@@ -165,3 +165,14 @@ test('the /admin switch keeps meaning "set by hand" while the radio is on air', 
   assert.equal(live.sessionTitle, 'late set', 'a title set by hand names the radio session');
   assert.equal(live.streamUrl, 'https://radio.huismax.com/live.mp3');
 });
+
+test('home: on air, the DJ spectrum stands where the album art was and opens /dj; "right now" has no dot', async () => {
+  icecast(() => json(onAir()));
+  const html = await (await app.request('https://huismax.com/', {}, {} as never)).text();
+  assert.match(html, /<div class="presence" data-presence="true" data-live="on"/);
+  assert.match(html, /<a class="listening listening-feature presence-on" href="\/dj" data-live-card="true"><span class="listening-art" aria-hidden="true"><canvas class="live-viz" data-live-viz="true"><\/canvas><\/span>/);
+  assert.match(html, /<span class="listening-name">huismax dj channel<\/span>/);
+  // the index's "right now" row: status only, no dot (the hero's status keeps its dot)
+  assert.match(html, /<span class="mono dim">right now<\/span> <span data-presence-status="true">/);
+  assert.match(html, /<p class="presence-line presence-off"><span class="doing-dot" aria-hidden="true"><\/span>/);
+});
