@@ -23,9 +23,12 @@
 ::view-transition-old(chat), ::view-transition-new(chat) { animation: none; }
 /* modal on phones (chat.ts): the sheet already covers the page, so no dimmed backdrop */
 .chat::backdrop { background: transparent; }
-/* wider than a phone: below the site header, so live chat and menu stay in reach */
-@media (min-width: 561px) {
-  .chat { top: var(--header-h); height: calc(100dvh - var(--header-h)); }
+/* a sheet opened as a modal on a phone stays full screen if the screen then widens (rotation, split view) */
+.chat:modal { inset: 0; width: 100vw; height: 100dvh; border-left: 0; }
+html:has(.chat:modal) { overflow: hidden; }
+/* wider (and tall enough) than a phone: below the site header, so live chat and menu stay in reach */
+@media (min-width: 561px) and (min-height: 561px) {
+  .chat:not(:modal) { top: var(--header-h); height: calc(100dvh - var(--header-h)); }
 }
 @keyframes chat-in { from { opacity: 0; transform: translateX(16px); } }
 
