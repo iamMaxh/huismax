@@ -8,3 +8,8 @@ SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 # Local dev only (Spotify allows http://127.0.0.1 redirect URIs)
 PUBLIC_ORIGIN=http://127.0.0.1:8787
+# Live chat: the bridge running locally (npm run bridge, see bridge/chat-bridge.env.example) and its secret.
+# Production: CHAT_BRIDGE_URL is the tunnel's https://…/chat address. Plain http works only locally, where
+# PUBLIC_ORIGIN (above) tells the worker the site is on this machine.
+CHAT_BRIDGE_URL=http://127.0.0.1:8790/chat
+CHAT_BRIDGE_SECRET=

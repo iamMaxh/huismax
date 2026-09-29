@@ -86,6 +86,42 @@ Public endpoints (edge-cached, safe to poll):
 
 The sender is the `EMAIL_FROM` variable (e.g. `Max <noreply@huismax.com>`, on a domain verified in Resend), or the one set in `/admin`. Without either, Resend's test sender `onboarding@resend.dev` is used, which only delivers to the email of your Resend account. Visitors are rate limited (one a minute, ten a day, keyed by a hash of the IP) and a hidden honeypot field drops bots.
 
+## Live chat
+
+Max's AI Assistant is an OpenClaw agent (`openclaw/website`) on Max's own server. The browser only ever talks to this site:
+
+```
+browser ─POST /api/chat─▶ worker (src/lib/chat.ts) ─https + CHAT_BRIDGE_SECRET─▶ Cloudflare Tunnel
+        ─▶ bridge (bridge/, 127.0.0.1:8790, POST /chat only) ─OPENCLAW_GATEWAY_TOKEN─▶ OpenClaw (127.0.0.1:18789)
+```
+
+- The worker checks the origin and the question, sends the bridge a hashed visitor id (never the IP) and streams the answer back. It has no OpenClaw token and refuses a bridge URL that isn't https.
+- The bridge checks the secret, always asks `openclaw/website`, and adds the gateway token itself. It rate limits per visitor (6 a minute, 100 a day, one answer at a time) and site-wide (4 at once), and it times out slow answers. Visitors get generic errors; the details go to its journal.
+
+Pushing to `main` deploys the new chat, so set up the server side first:
+
+1. **Bridge** (Ubuntu, Node 22+): `openssl rand -hex 32` for the secret, then follow the header of `bridge/chat-bridge.service` (env file: `bridge/chat-bridge.env.example`).
+2. **Tunnel**: add one public hostname, e.g. `chat-bridge.huismax.com`, to `http://127.0.0.1:8790` with path `^/chat$`. In a `config.yml` that is:
+   ```yaml
+   ingress:
+     - hostname: chat-bridge.huismax.com
+       path: ^/chat$
+       service: http://127.0.0.1:8790
+     # … existing rules …
+     - service: http_status:404
+   ```
+   Never add a rule for port 18789 or the OpenClaw dashboard.
+3. **Worker**: Cloudflare → the Worker → Settings → Variables and Secrets. Add `CHAT_BRIDGE_URL` = `https://chat-bridge.huismax.com/chat` (text) and `CHAT_BRIDGE_SECRET` (**Secret**).
+4. **Check** from any machine:
+   - `curl -N https://chat-bridge.huismax.com/chat -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' -d '{"message":"hi"}'` streams an answer.
+   - Without the header it returns 401.
+   - On the server, `ss -ltnp | grep -E ':(18789|8790)\b'` lists only `127.0.0.1` / `[::1]`.
+5. Merge. Then retire the old `api.huismax.com` chat backend and its tunnel route.
+
+Until step 3 is done, the chat answers "temporarily unavailable" rather than calling anything else. Locally: `npm run bridge` with the env file's variables, and `CHAT_BRIDGE_URL` / `CHAT_BRIDGE_SECRET` in `.dev.vars`.
+
+The `website` agent answers anyone on the internet, so give it no tools that touch the server (shell, files, browser) and no private data.
+
 ## Deploy from GitHub (Cloudflare dashboard)
 
 Workers & Pages → Create → Import a repository → pick this repo.

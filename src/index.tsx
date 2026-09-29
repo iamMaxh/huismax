@@ -12,6 +12,7 @@ import * as cms from './lib/cms';
 import { identities, items, photos, sessions, settings, site, type Site } from './lib/content';
 import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, validKey } from './lib/media';
 import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
+import { chat } from './lib/chat';
 import { adminData, type AdminData } from './lib/admin-data';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
@@ -167,6 +168,13 @@ app.post('/api/reply', async (c) => {
   const saved = await saveMessage(c.env, m);
   c.executionCtx.waitUntil(emailMessage(c.env, s, saved));
   return c.json({ ok: true });
+});
+
+/* ——— live chat (public) ——— */
+
+app.post('/api/chat', async (c) => {
+  if (!sameOrigin(c)) return c.json({ error: 'bad origin' }, 403);
+  return chat(c.env, c.req.raw);
 });
 
 /* ——— live + presence (public) ——— */
