@@ -30,7 +30,7 @@ const Pick = ({ item }: { item: Item }) => {
 };
 
 /**
- * Spotify (now playing, recently played, on repeat) is live via /api/spotify/*, rendered client-side.
+ * Spotify (now playing with its lyrics, recently played, on repeat) is live via /api/spotify/*, rendered client-side.
  * Artists, rotation and featured are Max's own picks from /admin; a section only appears when it has items.
  */
 export const Music = ({ artists, rotation, featured, spotifyProfile, intro }: Props) => (
@@ -62,6 +62,22 @@ export const Music = ({ artists, rotation, featured, spotifyProfile, intro }: Pr
           <span data-np-dur>0:00</span>
         </div>
         <p class="np-empty mono dim" data-np-empty hidden />
+        {/* lyrics of the song playing (client/pages/music-lyrics.ts); not read out line by line as they change */}
+        <div class="np-lyrics" data-lyrics data-state="off" aria-live="off" hidden>
+          <p class="np-lyrics-head mono">
+            <span class="np-lyrics-label">lyrics</span>
+            <span class="np-lyrics-note" data-lyrics-note />
+            <a class="np-lyrics-src" href="https://lrclib.net" target="_blank" rel="noopener noreferrer" data-lyrics-src hidden>
+              lrclib<span aria-hidden="true">↗</span>
+            </a>
+            <button type="button" class="np-lyrics-toggle" data-lyrics-toggle aria-expanded="false" aria-controls="np-lyrics-view" hidden>
+              all lines
+            </button>
+          </p>
+          <div class="np-lyrics-view" id="np-lyrics-view" data-lyrics-view hidden>
+            <ol class="np-lyrics-lines" data-lyrics-lines />
+          </div>
+        </div>
       </div>
     </section>
 

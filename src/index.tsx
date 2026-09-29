@@ -14,6 +14,7 @@ import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, valid
 import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
 import { REQUEST_LIMIT, saveRequest, underRequestCap, validateRequest } from './lib/requests';
 import { chat } from './lib/chat';
+import { findLyrics, type Lyrics } from './lib/lyrics';
 import { radioStatus } from './lib/radio';
 import { adminData, type AdminData } from './lib/admin-data';
 import { Layout, type PageKey } from './views/layout';
@@ -546,26 +547,32 @@ app.delete('/api/admin/messages/:id', async (c) => {
 // PUBLIC_ORIGIN pins the origin in local dev, where wrangler rewrites the request URL to the route host.
 const redirectUri = (c: C) => `${c.env.PUBLIC_ORIGIN || new URL(c.req.url).origin}/api/spotify/callback`;
 
-/** Edge-cached JSON so every visitor's poll doesn't turn into a Spotify API call. */
-async function edgeCached<T extends { state: string }>(c: C, ttl: number, load: () => Promise<T>) {
+/**
+ * Edge-cached data so every visitor's poll doesn't turn into a Spotify (or LRCLIB) call. `ttl` seconds per answer;
+ * 0 = not kept. By default only real data is kept: a setup state (unconfigured / disconnected) or an error must
+ * clear as soon as it's fixed.
+ */
+async function edgeData<T extends { state: string }>(c: C, path: string, ttl: (data: T) => number, load: () => Promise<T>): Promise<T> {
   const cache = (caches as unknown as { default: Cache }).default;
-  const key = new Request(new URL(c.req.path, c.req.url).toString());
-  // The edge copy lives `ttl` seconds; browsers never keep one, so a poll always sees the edge's current answer.
-  const toBrowser = (body: BodyInit | null) =>
-    new Response(body, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
+  const key = new Request(new URL(path, c.req.url).toString());
   const hit = await cache.match(key);
-  if (hit) return toBrowser(hit.body);
+  const cached = hit ? await hit.json<T>().catch(() => null) : null;
+  if (cached) return cached;
   const data = await load();
-  const body = JSON.stringify(data);
-  // Only cache real data: a setup state (unconfigured / disconnected) or an error must clear as soon as it's fixed.
-  if (CACHEABLE.has(data.state)) {
-    const stored = new Response(body, { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${ttl}` } });
+  const seconds = ttl(data);
+  if (seconds > 0) {
+    const stored = new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${seconds}` } });
     c.executionCtx.waitUntil(cache.put(key, stored));
   }
-  return toBrowser(body);
+  return data;
 }
 
 const CACHEABLE = new Set(['playing', 'paused', 'recent', 'idle', 'ok']);
+const only = (ttl: number) => (data: { state: string }) => (CACHEABLE.has(data.state) ? ttl : 0);
+// Browsers never keep a copy, so a poll always sees the edge's current answer.
+const fresh = (data: unknown, status: 200 | 409 = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
+const cachedNow = (c: C) => edgeData(c, '/api/spotify/now', only(10), () => nowPlaying(c.env));
 
 /** Drop the cached Spotify responses, so connecting or disconnecting shows up at once. */
 async function purgeSpotify(c: C) {
@@ -574,8 +581,44 @@ async function purgeSpotify(c: C) {
   await Promise.all(['/api/spotify/now', '/api/spotify/recent'].map((p) => cache.delete(new Request(origin + p))));
 }
 
-app.get('/api/spotify/now', (c) => edgeCached(c, 10, () => nowPlaying(c.env)));
-app.get('/api/spotify/recent', (c) => edgeCached(c, 60, () => recent(c.env)));
+app.get('/api/spotify/now', async (c) => {
+  const data = await cachedNow(c);
+  // How long ago Spotify said where the song was (up to the edge cache's 10 s): the page adds it, so progress and
+  // lyrics don't run behind by however old the cached answer is.
+  const ageMs = data.state === 'playing' ? Math.min(60_000, Math.max(0, Date.now() - Date.parse(data.fetchedAt))) || 0 : 0;
+  return fresh({ ...data, ageMs });
+});
+app.get('/api/spotify/recent', async (c) => fresh(await edgeData(c, '/api/spotify/recent', only(60), () => recent(c.env))));
+
+/*
+ * Lyrics for the song on show (src/lib/lyrics.ts). Only the track /api/spotify/now reports can be looked up, by its
+ * Spotify id, so this is no open lyrics proxy. One lookup per song: the answer stays at the edge (a week; a day when
+ * nothing was found, two minutes when LRCLIB failed) and in the browser.
+ */
+const TRACK_ID = /^[A-Za-z0-9]{22}$/;
+const LYRICS_TTL: Record<Lyrics['state'], number> = { synced: 604800, plain: 604800, instrumental: 604800, none: 86400, error: 120 };
+const LYRICS_BROWSER: Record<Lyrics['state'], string> = {
+  synced: 'public, max-age=86400',
+  plain: 'public, max-age=86400',
+  instrumental: 'public, max-age=86400',
+  none: 'public, max-age=3600',
+  error: 'no-store',
+};
+
+app.get('/api/spotify/lyrics', async (c) => {
+  const id = c.req.query('id') ?? '';
+  if (!TRACK_ID.test(id)) return c.json({ error: 'bad id' }, 400);
+  const lyrics = await edgeData<Lyrics | { state: 'stale'; lines: [] }>(c, `/api/spotify/lyrics?id=${id}`, (d) => (d.state === 'stale' ? 0 : LYRICS_TTL[d.state]), async () => {
+    const t = (await cachedNow(c)).track;
+    if (!t || t.id !== id) return { state: 'stale', lines: [] };
+    return findLyrics(c.env, { name: t.name, artist: t.leadArtist || t.artists, album: t.album, durationMs: t.durationMs });
+  });
+  // not the song on show (it changed, or never played): the page asks again once it has caught up
+  if (lyrics.state === 'stale') return fresh(lyrics, 409);
+  return new Response(JSON.stringify(lyrics), {
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': LYRICS_BROWSER[lyrics.state] },
+  });
+});
 
 // Linking is admin-only, so nobody else can attach their account to the site.
 app.get('/api/spotify/login', async (c) => {

@@ -20,7 +20,7 @@ Verified against the production code and the live site on **2026-09-29**.
 |---|---|---|---|
 | `/` | Home | "WHO IS MAX?" intro, Max's current status, what he's listening to, his identities, and entry points | LIVE |
 | `/dj` | huismax dj channel | Max's DJ channel: live sets (when on air) and an archive of recorded sessions | PARTIAL (no sessions yet) |
-| `/music` | Music | Live Spotify listening (now playing, recently played, on repeat) and Max's favourite artists | LIVE |
+| `/music` | Music | Live Spotify listening (now playing with synced lyrics, recently played, on repeat) and Max's favourite artists | LIVE |
 | `/photographer` | Photographer | Max's photography gallery | PARTIAL (no photos yet) |
 | `/hiking` | Hiking | Max's hiking photo album (same gallery as Photographer) | PARTIAL (no photos yet) |
 | `/vibe-coder` | Vibe coder | Max's software projects, with status | LIVE |
@@ -125,6 +125,7 @@ Verified against the production code and the live site on **2026-09-29**.
 - **Status block:**
   - **Status line:** a breathing dot and Max's personal status, which he sets by hand. Examples: "building", "locked in", "touching grass", "afk", or any custom text.
   - **Spotify card:** album art, a state label ("now playing", "paused" or "last played · 2 h ago"), the track, the artist, and a progress bar while playing or paused. Clicking it opens the track on Spotify.
+  - While a song plays and has synced lyrics, the line being sung shows under the card, like a subtitle ("> …"). It disappears when the song is paused or has no synced lyrics. The full lyrics are on `/music`.
   - A **"spotify profile ↗"** link.
   - A manual "♪ title — artist" line appears when Max sets one and Spotify isn't showing a track.
   - While Max is live, the block shows **● LIVE** and a "huismax dj channel" card: the DJ spectrum stands where the album art was, and the card opens `/dj`. It returns when the set ends.
@@ -202,6 +203,13 @@ Verified against the production code and the live site on **2026-09-29**.
   - Shows "now playing", "paused" or "last played", with artwork, track, artist, album and a live progress bar.
   - A card showing the last-played track also shows how long ago it played.
   - Clicking it opens the track on Spotify.
+- **Lyrics · LIVE:** under the progress bar while a song is playing or paused.
+  - Lyrics come from **LRCLIB**, a free community lyrics database (credited with an "lrclib ↗" link). The site looks each song up once and reuses the answer.
+  - **Synced** lyrics read like a log: each line has its time, and the line being sung is highlighted with a blinking `_`. Four lines show at a time (the one before, the current one, two to come) and follow the song by themselves. They switch when the song changes.
+  - **+ all lines** opens the whole song (the device remembers the choice). While scrolling it by hand, it stops following for a few seconds. **− fewer lines** closes it again.
+  - The header says what's there: "synced", "not synced" (words without timing, shown as plain text), "instrumental", "none found", or "unavailable right now" (LRCLIB didn't answer; the site tries again later). While paused it adds "paused" and the lyrics stop on the current line.
+  - Timing follows Spotify's own progress, so a line can be up to a second off, and after Max skips or seeks it can take up to about 20 seconds to catch up.
+  - Lyrics only appear for the song Max is playing, never for "last played" songs. Some songs have no lyrics on LRCLIB, or only an unsynced version.
 - **recently played:** up to 8 recent tracks with duplicates removed, each with "x min/h/d ago".
 - **on repeat:** Max's top 5 tracks from roughly the last 4 weeks.
 - **artists:** Max's hand-picked favourite artists (they can link out).
@@ -353,4 +361,5 @@ Use `/reply` for everything contact-related: collaborations, DJ bookings, photog
 - `https://huismax.com/api/presence`: `live.isLive`, `live.sessionTitle`, `live.startedAt`, `status` (Max's status line) and `listening` (a manual note, if set).
 - `https://huismax.com/api/dj-status`: `live` (Max's radio is on air) and `listeners` (people tuned in).
 - `https://huismax.com/api/spotify/now`: `state` (`playing` / `paused` / `recent` / `idle`, or an unavailable state) and `track` (name, artists, album, url, playedAt).
+- `https://huismax.com/api/spotify/lyrics?id=<track id>`: the lyrics of the song Max is playing right now (the `id` from `track.id` above). `state` (`synced` / `plain` / `instrumental` / `none` / `error`) and `lines` (`t` = start in ms, `text`). Any other id answers 409.
 - `https://huismax.com/api/spotify/recent`: `recent` (up to 8 recently played tracks) and `onRepeat` (top 5 tracks from about the last 4 weeks).

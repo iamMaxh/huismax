@@ -1,6 +1,7 @@
 import { $, $$, cssVar, fitCanvas, reducedMotion } from '../lib/dom';
 import { tickListening } from '../lib/listening';
 import { live } from '../lib/live';
+import { lyrics, type Line } from '../lib/lyrics';
 import { player } from '../lib/player';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
@@ -69,7 +70,37 @@ export const initHome: PageInit = (main, scope) => {
   rain($<HTMLCanvasElement>('[data-rain]', main)!, scope);
   const liveViz = $<HTMLCanvasElement>('[data-live-viz]', main);
   if (liveViz) spectrum(liveViz, scope);
+  sungLine(main, scope);
 };
+
+/**
+ * Under the Spotify card: the line being sung, like a subtitle, while the song plays and has synced lyrics.
+ * Anything else (paused, unsynced, none found, an error) and it's simply not there.
+ */
+function sungLine(main: HTMLElement, scope: Parameters<PageInit>[1]) {
+  const el = $('[data-listening-lyric]', main);
+  if (!el) return;
+  const text = $('[data-listening-lyric-text]', el)!;
+  let lines: Line[] = [];
+  scope.add(
+    lyrics.subscribe((s) => {
+      lines = s.status === 'synced' && !s.paused ? s.lines : [];
+      if (!lines.length) el.hidden = true;
+    }),
+  );
+  scope.add(
+    lyrics.onLine((i) => {
+      const l = lines[i];
+      el.hidden = !l;
+      if (!l) return;
+      const words = l.text || '♪';
+      el.classList.toggle('is-break', !l.text);
+      if (text.textContent === words) return;
+      text.textContent = words;
+      if (!reducedMotion()) text.animate?.([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'ease-out' });
+    }),
+  );
+}
 
 /**
  * The DJ console's spectrum at album-art size, while the channel is live: still until the set plays, then the real

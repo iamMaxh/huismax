@@ -31,4 +31,5 @@ export type Env = {
   /** Test overrides; leave unset in production. */
   SPOTIFY_ACCOUNTS_BASE?: string;
   SPOTIFY_API_BASE?: string;
+  LRCLIB_BASE?: string;
 };
