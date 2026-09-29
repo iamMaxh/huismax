@@ -13,6 +13,7 @@ import { identities, items, photos, sessions, settings, site, type Site } from '
 import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, validKey } from './lib/media';
 import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
 import { chat } from './lib/chat';
+import { radioStatus } from './lib/radio';
 import { adminData, type AdminData } from './lib/admin-data';
 import { Layout, type PageKey } from './views/layout';
 import { Home } from './views/pages/home';
@@ -184,6 +185,12 @@ app.get('/api/live-status', async (c) => {
   return c.json(status, 200, { 'Cache-Control': 'no-store' });
 });
 
+/** The radio (Icecast): is /live.mp3 on air, and how many are listening. The DJ page polls it. */
+app.get('/api/dj-status', async (c) => {
+  const { live, listeners } = await radioStatus(c.env);
+  return c.json({ live, listeners }, 200, { 'Cache-Control': 'no-store' });
+});
+
 /** Everything the public pages poll: live status + personal status + listening. */
 app.get('/api/presence', async (c) => {
   const [live, presence] = await Promise.all([getLiveStatus(c.env, mockParam(c)), getPresence(c.env)]);
@@ -204,7 +211,8 @@ app.get('/admin', async (c) => {
   if (!c.env.ADMIN_TOKEN) return c.html(<AdminLogin error="ADMIN_TOKEN secret is not set." />, 503);
   if (!(await isAdmin(c))) return c.html(<AdminLogin />);
   await ensureDb(c.env);
-  const [live, presence, user] = await Promise.all([getLiveStatus(c.env), getPresence(c.env), connectedAs(c.env)]);
+  // the switch is the hand setting; the radio goes live on its own and is shown beside it
+  const [live, radio, presence, user] = await Promise.all([getLiveStatus(c.env, null, { radio: false }), radioStatus(c.env), getPresence(c.env), connectedAs(c.env)]);
   const spotify = { configured: configured(c.env), setup: setupHints(c.env), user, notice: c.req.query('spotify') ?? null, redirectUri: redirectUri(c) };
   let data: AdminData | null = null;
   let dbError: string | null = null;
@@ -215,7 +223,7 @@ app.get('/admin', async (c) => {
       dbError = (e as Error).message;
     }
   }
-  return c.html(<Admin live={live} presence={presence} kv={!!c.env.STATE} spotify={spotify} data={data} dbError={c.env.DB ? dbError : 'D1 database (binding DB) is not connected.'} />);
+  return c.html(<Admin live={live} radio={radio} presence={presence} kv={!!c.env.STATE} spotify={spotify} data={data} dbError={c.env.DB ? dbError : 'D1 database (binding DB) is not connected.'} />);
 });
 
 app.post('/admin/login', async (c) => {

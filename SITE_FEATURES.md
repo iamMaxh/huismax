@@ -152,8 +152,9 @@ Verified against the production code and the live site on **2026-09-29**.
 - A label that reads "now playing" when live, "latest · 00N" for the newest session, or "archive".
 - The session title.
 - An **on air** clock that counts time since the live set started. It shows `--:--:--` when not live.
+- While live, a **listening** count (people tuned in right now) and a **volume** control.
 - Buttons:
-  - **listen live →**: shown only while live.
+  - **listen live →**: shown only while live. It becomes **pause**, then **resume** (which rejoins the live point).
   - **play →**: plays the newest playable archived session. It's hidden while live.
 
 **Archive playback · PARTIAL:**
@@ -169,15 +170,16 @@ Verified against the production code and the live site on **2026-09-29**.
 - Possible errors: "could not load this mix", "playback blocked".
 - **Current content (snapshot):** the archive is empty. The page shows **"NO ARCHIVE YET · first transmission soon"** (COMING SOON).
 
-**Live sets · EXPERIMENTAL:**
-- Max switches "live" on and off by hand and supplies a stream link.
+**Live sets · LIVE:**
+- Max streams from his own radio server. The site goes live **on its own** when he starts streaming and returns to normal when he stops, usually within 15–30 seconds, with no reload needed.
 - While he's live:
-  - A LIVE badge appears in the header, on the homepage and in the bottom bar.
+  - A LIVE badge appears in the header, on the /dj page, on the homepage (in place of his status) and in the bottom bar.
+  - The DJ console shows "now playing", the on-air clock, the listener count, **listen live** and volume.
   - The palette offers **listen live**.
-  - The on-air clock runs.
-- After a pause, a live stream resumes at the live point.
-- If Max is live but no stream is attached, visitors see "stream not connected yet". If the stream fails: "could not reach the stream".
-- **Current state (snapshot):** not live, and no live set has been documented yet.
+- Audio never starts by itself: visitors press **listen live** (browsers require a click). It keeps playing while they browse other pages.
+- Volume is remembered on the visitor's device. On iPhone, the volume control appears once the stream is playing; otherwise use the phone's buttons.
+- When a set ends, the player stops and the page goes back to the archive.
+- If the stream fails: "could not reach the stream".
 
 **Not available:**
 - No schedule or calendar of upcoming sets, and no notifications or reminders.
@@ -290,7 +292,7 @@ Use `/reply` for everything contact-related: collaborations, DJ bookings, photog
 | "NOT 1 … NOT 7" frames on Photographer or Hiking | Empty placeholders for future photos. Not clickable. |
 | DJ archive "NO ARCHIVE YET · first transmission soon" | No sessions published yet. |
 | DJ "on air --:--:--" clock | Runs only while Max is live. |
-| "listen live" / LIVE badge | Appear only while Max is live, which isn't currently the case. |
+| "listen live" / LIVE badge / listener count | Appear only while Max is streaming. |
 | Small waveform bars beside each DJ session | Decorative, not the real audio waveform. |
 | DJ console and audio bar visualizers | Real only while audio plays and the audio host allows analysis. Otherwise a simulated animation. |
 | Disabled ▶ on a DJ session | That session has no audio attached. |
@@ -340,5 +342,6 @@ Use `/reply` for everything contact-related: collaborations, DJ bookings, photog
 
 **Live data (public, read-only JSON):** the assistant can read these to answer "is Max live?" or "what's he listening to?". Send visitors to the pages rather than to these URLs.
 - `https://huismax.com/api/presence`: `live.isLive`, `live.sessionTitle`, `live.startedAt`, `status` (Max's status line) and `listening` (a manual note, if set).
+- `https://huismax.com/api/dj-status`: `live` (Max's radio is on air) and `listeners` (people tuned in).
 - `https://huismax.com/api/spotify/now`: `state` (`playing` / `paused` / `recent` / `idle`, or an unavailable state) and `track` (name, artists, album, url, playedAt).
 - `https://huismax.com/api/spotify/recent`: `recent` (up to 8 recently played tracks) and `onRepeat` (top 5 tracks from about the last 4 weeks).

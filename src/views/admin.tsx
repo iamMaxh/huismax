@@ -2,6 +2,7 @@ import { raw } from 'hono/html';
 import type { Child } from 'hono/jsx';
 import { assets } from '../generated/assets';
 import type { LiveStatus } from '../lib/live';
+import type { RadioStatus } from '../lib/radio';
 import { STATUS_PRESETS, type Presence } from '../lib/presence';
 import type { AdminData } from '../lib/admin-data';
 import type { PageKeyCms, Settings } from '../lib/cms';
@@ -188,7 +189,7 @@ const NoDb = ({ error }: { error: string | null }) => (
 /** JSON for a <script type="application/json">: `<` escaped so content can never close the tag. */
 const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
 
-export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: LiveStatus; presence: Presence; kv: boolean; spotify: SpotifyInfo; data: AdminData | null; dbError: string | null }) => {
+export const Admin = ({ live, radio, presence, kv, spotify, data, dbError }: { live: LiveStatus; radio: RadioStatus; presence: Presence; kv: boolean; spotify: SpotifyInfo; data: AdminData | null; dbError: string | null }) => {
   const s = data?.settings;
   const unread = data ? data.messages.filter((m) => !m.read).length : 0;
   return (
@@ -325,7 +326,10 @@ export const Admin = ({ live, presence, kv, spotify, data, dbError }: { live: Li
               <input class="a-field" type="text" maxlength={120} placeholder="session title" value={live.sessionTitle ?? ''} data-live-title aria-label="session title" />
               <input class="a-field a-field-wide" type="url" maxlength={300} placeholder="stream url (https://…)" value={live.streamUrl ?? ''} data-live-url aria-label="stream url" />
             </div>
-            <p class="mono dim">going live replaces your status at the top of the homepage. it comes back when you end the session.</p>
+            <p class="mono dim">
+              radio: {radio.live ? `● on air · ${radio.listeners} listening` : 'off air'}. the site goes live on its own while BUTT streams to /live.mp3; this switch is for any other stream.
+            </p>
+            <p class="mono dim">going live replaces your status at the top of the homepage. it comes back when the session ends.</p>
           </section>
           <p class="admin-foot mono dim">
             <kbd>⌘</kbd> <kbd>↵</kbd> save · status saves on its own

@@ -9,6 +9,8 @@ export type PlayerState = {
   message: string | null;
   time: number;
   duration: number;
+  /** 0…1, remembered on this device */
+  volume: number;
 };
 
 type Listener = (s: PlayerState) => void;
@@ -16,14 +18,36 @@ type Listener = (s: PlayerState) => void;
 let audio: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
+let gain: GainNode | null = null;
 let routed = false;
 const listeners = new Set<Listener>();
-const state: PlayerState = { source: null, status: 'idle', message: null, time: 0, duration: 0 };
+
+function storedVolume() {
+  try {
+    const v = parseFloat(localStorage.getItem('volume') ?? '');
+    return v >= 0 && v <= 1 ? v : 1;
+  } catch {
+    return 1;
+  }
+}
+
+const state: PlayerState = { source: null, status: 'idle', message: null, time: 0, duration: 0, volume: storedVolume() };
 
 const emit = () => listeners.forEach((fn) => fn(state));
 const set = (patch: Partial<PlayerState>) => {
   Object.assign(state, patch);
   emit();
+};
+
+/** Routed through Web Audio, the gain sets the volume (the element stays at full); otherwise the element does. */
+function applyVolume() {
+  if (gain) gain.gain.value = state.volume;
+  if (audio) audio.volume = routed ? 1 : state.volume;
+}
+
+const idle = () => {
+  audio?.pause();
+  set({ source: null, status: 'idle', message: null, time: 0, duration: 0 });
 };
 
 function createAudio(cors: boolean) {
@@ -35,25 +59,35 @@ function createAudio(cors: boolean) {
   el.addEventListener('pause', () => state.status === 'playing' && set({ status: 'paused' }));
   el.addEventListener('waiting', () => set({ status: 'loading' }));
   el.addEventListener('timeupdate', () => set({ time: el.currentTime, duration: Number.isFinite(el.duration) ? el.duration : 0 }));
-  el.addEventListener('ended', () => set({ status: 'paused', time: 0 }));
+  // a live stream that ends (the set is over, the connection dropped) is gone, not paused
+  el.addEventListener('ended', () => (state.source?.kind === 'live' ? idle() : set({ status: 'paused', time: 0 })));
+  el.addEventListener('error', () => el === audio && state.source?.kind === 'live' && state.status === 'playing' && idle());
   audio = el;
   routed = false;
+  applyVolume();
   return el;
 }
 
-/** Routes audio through an analyser for real spectrum data. Needs CORS on the source. */
+/** Routes audio through an analyser (real spectrum data) and a gain (volume). Needs CORS on the source. */
 function route(el: HTMLAudioElement) {
   if (routed || !el.crossOrigin) return;
   try {
     ctx ??= new AudioContext();
-    analyser ??= Object.assign(ctx.createAnalyser(), { fftSize: 256, smoothingTimeConstant: 0.8 });
+    if (!analyser || !gain) {
+      analyser = Object.assign(ctx.createAnalyser(), { fftSize: 256, smoothingTimeConstant: 0.8 });
+      gain = ctx.createGain();
+      analyser.connect(gain).connect(ctx.destination);
+    }
     ctx.createMediaElementSource(el).connect(analyser);
-    analyser.connect(ctx.destination);
     routed = true;
+    applyVolume();
   } catch {
     analyser = null;
+    gain = null;
   }
 }
+
+let elementVolume: boolean | null = null;
 
 async function start(source: Source) {
   if (!source.url) {
@@ -95,9 +129,26 @@ export const player = {
       audio.play().catch(() => set({ status: 'error', message: 'playback blocked' }));
     }
   },
-  stop() {
-    audio?.pause();
-    set({ source: null, status: 'idle', message: null, time: 0, duration: 0 });
+  stop: idle,
+  setVolume(v: number) {
+    const volume = Math.min(1, Math.max(0, v));
+    try {
+      localStorage.setItem('volume', String(volume));
+    } catch {
+      /* still applies, just not remembered */
+    }
+    set({ volume });
+    applyVolume();
+  },
+  /** iOS ignores `volume` on media elements; there only the Web Audio route (a stream with CORS) can change it. */
+  volumeWorks(): boolean {
+    if (routed) return true;
+    if (elementVolume === null) {
+      const probe = new Audio();
+      probe.volume = 0.5;
+      elementVolume = probe.volume === 0.5;
+    }
+    return elementVolume;
   },
   seek(fraction: number) {
     if (audio && state.duration) audio.currentTime = fraction * state.duration;

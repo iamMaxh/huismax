@@ -5,7 +5,10 @@ import { LiveMark } from '../components/live';
 
 const no = (n: number) => String(n).padStart(3, '0');
 
-/** Live when LIVE is on in /admin; otherwise the console plays the archive (sessions from /admin, newest number first). */
+/**
+ * Live while the radio is on air (or LIVE is on in /admin): the console plays the stream, straight from Icecast.
+ * Otherwise it plays the archive (sessions from /admin, newest number first).
+ */
 export const DJ = ({ live, sessions, intro }: { live: LiveStatus; sessions: PublicSession[]; intro: string }) => {
   const list = [...sessions].sort((a, b) => b.number - a.number);
   // the console offers the newest session that can actually be played
@@ -29,8 +32,18 @@ export const DJ = ({ live, sessions, intro }: { live: LiveStatus; sessions: Publ
             <span class="label mono">on air</span>
             <span class="mono console-clock" data-dj-clock data-started={live.startedAt ?? ''}>--:--:--</span>
           </div>
-          <button class="btn-primary console-live" type="button" data-listen-live data-hide-off hidden={!live.isLive}>
-            listen live <span aria-hidden="true">→</span>
+          {/* the radio's listener count (/api/dj-status); only while on air */}
+          <div class="console-cell" data-dj-listeners-cell hidden>
+            <span class="label mono">listening</span>
+            <span class="mono console-count" data-dj-listeners />
+          </div>
+          {/* shown once there is something to hear, and where the browser lets a page set the volume */}
+          <label class="console-cell console-volume" data-dj-volume hidden>
+            <span class="label mono">volume</span>
+            <input type="range" min="0" max="100" step="1" value="100" aria-label="volume" data-dj-volume-input />
+          </label>
+          <button class="btn-primary console-live" type="button" data-listen-live data-hide-off hidden={!live.isLive} aria-pressed="false">
+            <span data-listen-label>listen live</span> <span aria-hidden="true">→</span>
           </button>
           {latest?.audioUrl && (
             <button class="btn-primary console-latest" type="button" data-play-mix={latest.id} hidden={live.isLive}>

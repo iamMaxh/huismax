@@ -1,5 +1,5 @@
 import { $, $$, clock, cssVar, fitCanvas, readJSON, reducedMotion } from '../lib/dom';
-import { live, type LiveStatus } from '../lib/live';
+import { live, poll as pollLive, type LiveStatus } from '../lib/live';
 import { player } from '../lib/player';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
@@ -15,6 +15,58 @@ export const initDJ: PageInit = (main, scope) => {
   // the session the console offers (newest playable one, chosen on the server), else the newest one
   const latest = mixes.find((m) => m.id === latestBtn?.dataset.playMix) ?? mixes[0];
   const canvas = $<HTMLCanvasElement>('[data-dj-viz]', main)!;
+  const liveLabel = $('.console-live [data-listen-label]', main);
+  const listenersCell = $('[data-dj-listeners-cell]', main)!;
+  const listenersEl = $('[data-dj-listeners]', main)!;
+  const volume = $('[data-dj-volume]', main)!;
+  const volumeInput = $<HTMLInputElement>('[data-dj-volume-input]', volume)!;
+
+  /* ——— the radio (/api/dj-status): listener count while on air ——— */
+  let radio: { live: boolean; listeners: number } | null = null;
+  let radioWas = live.get().isLive;
+  const paintRadio = () => {
+    const show = !!radio?.live && live.get().isLive;
+    listenersCell.hidden = !show;
+    if (show) listenersEl.textContent = String(radio!.listeners);
+  };
+  const pollRadio = async () => {
+    try {
+      const res = await fetch('/api/dj-status', { cache: 'no-store' });
+      if (!res.ok) return;
+      radio = (await res.json()) as { live: boolean; listeners: number };
+    } catch {
+      return; // offline: keep the last count
+    }
+    // the channel's LIVE (radio or set by hand) comes from the site-wide poll; when the radio just went on or off air,
+    // fetch it now instead of up to 15 s later
+    if (radio.live !== radioWas) pollLive();
+    radioWas = radio.live;
+    paintRadio();
+  };
+  pollRadio();
+  let radioTimer = setInterval(pollRadio, 15_000);
+  scope.on(document, 'visibilitychange', () => {
+    clearInterval(radioTimer);
+    if (document.visibilityState !== 'visible') return;
+    pollRadio();
+    radioTimer = setInterval(pollRadio, 15_000);
+  });
+  scope.add(() => clearInterval(radioTimer));
+
+  /* ——— listen live (play / pause / resume) and volume follow the global player ——— */
+  const paintControls = () => {
+    const ps = player.state();
+    const mine = ps.source?.kind === 'live';
+    if (liveLabel) {
+      liveLabel.textContent = !mine ? 'listen live' : ps.status === 'playing' ? 'pause' : ps.status === 'loading' ? 'loading' : ps.status === 'paused' ? 'resume' : 'listen live';
+      liveLabel.parentElement!.setAttribute('aria-pressed', String(mine && ps.status === 'playing'));
+    }
+    // nothing to hear, or a browser that ignores a page's volume (iOS, unless the stream runs through Web Audio): no slider
+    volume.hidden = !(live.get().isLive || ps.source) || !player.volumeWorks();
+    if (document.activeElement !== volumeInput) volumeInput.value = String(Math.round(ps.volume * 100));
+    volumeInput.style.setProperty('--v', volumeInput.value);
+  };
+  scope.on(volumeInput, 'input', () => player.setVolume(Number(volumeInput.value) / 100));
 
   /* ——— live state ——— */
   let startedAt: number | null = null;
@@ -24,6 +76,8 @@ export const initDJ: PageInit = (main, scope) => {
     if (latestBtn) latestBtn.hidden = s.isLive;
     startedAt = s.isLive && s.startedAt ? Date.parse(s.startedAt) : null;
     tickClock();
+    paintRadio();
+    paintControls();
   };
   const tickClock = () => {
     if (!startedAt) return void (clockEl.textContent = '--:--:--');
@@ -39,6 +93,7 @@ export const initDJ: PageInit = (main, scope) => {
   scope.add(
     player.subscribe((ps) => {
       main.dataset.playing = String(ps.status === 'playing');
+      paintControls();
       for (const b of $$<HTMLButtonElement>('[data-play-mix]', main)) {
         const mine = ps.source?.id === b.dataset.playMix;
         const playing = mine && ps.status === 'playing';

@@ -1,4 +1,5 @@
 import type { Env } from './env';
+import { radioStatus, radioStreamUrl } from './radio';
 
 export type LiveStatus = {
   isLive: boolean;
@@ -17,19 +18,23 @@ export type LiveOverride = Partial<Pick<LiveStatus, 'isLive' | 'streamUrl' | 'se
 const KV_KEY = 'live';
 
 /**
- * Resolution order: mock (dev only) → KV override → env vars.
- * To plug in a real stream later (Icecast / Mixcloud Live / a webhook from OBS),
- * replace or extend `readSource` — every consumer goes through `getLiveStatus`.
+ * Live when the radio is on air (Icecast has the /live.mp3 mount: BUTT is streaming, src/lib/radio.ts) or when it
+ * was switched on by hand. Hand settings resolve mock (dev only) → KV override → env vars; they still give the
+ * session title, and the stream for anything that isn't the radio. Every consumer goes through `getLiveStatus`.
+ * `radio: false` gives the hand setting alone (the /admin switch).
  */
-export async function getLiveStatus(env: Env, mock?: string | null): Promise<LiveStatus> {
-  const src = await readSource(env, mock);
-  const isLive = Boolean(src.isLive);
+export async function getLiveStatus(env: Env, mock?: string | null, opts: { radio?: boolean } = {}): Promise<LiveStatus> {
+  // a dev mock (?live=1 / ?live=0) decides on its own
+  const mocked = !!mock && env.ALLOW_MOCK === '1';
+  const [src, radio] = await Promise.all([readSource(env, mock), opts.radio === false || mocked ? null : radioStatus(env)]);
+  const onAir = !!radio?.live;
+  const isLive = onAir || Boolean(src.isLive);
   return {
     isLive,
     label: isLive ? 'LIVE' : '', // never "off air" anywhere public, data included
-    streamUrl: src.streamUrl || null,
+    streamUrl: onAir ? radioStreamUrl(env) : src.streamUrl || null,
     sessionTitle: src.sessionTitle || null,
-    startedAt: isLive ? src.startedAt || null : null,
+    startedAt: isLive ? (onAir ? radio!.startedAt : src.startedAt) || null : null,
     updatedAt: src.updatedAt || new Date().toISOString(),
   };
 }
@@ -62,5 +67,6 @@ export async function setLiveStatus(env: Env, next: LiveOverride): Promise<LiveS
   if (next.isLive && !prev.isLive) merged.startedAt = next.startedAt ?? new Date().toISOString();
   if (next.isLive === false) merged.startedAt = undefined;
   await env.STATE.put(KV_KEY, JSON.stringify(merged));
-  return getLiveStatus(env);
+  // what was set by hand, so the /admin switch shows its own state even while the radio is on air
+  return getLiveStatus(env, null, { radio: false });
 }

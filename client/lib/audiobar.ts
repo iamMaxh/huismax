@@ -5,9 +5,15 @@ import { readSpectrum } from './viz';
 import { spotify } from './spotify';
 import { paintListening } from './listening';
 
+/** Every "listen live" button: starts the stream, then pauses and resumes it (at the live edge) instead of restarting. */
 export const playLive = () => {
   const s = live.get();
-  if (!s.isLive) return;
+  const ps = player.state();
+  const mine = ps.source?.kind === 'live' && ps.status !== 'error';
+  if (mine && (ps.status === 'playing' || ps.status === 'loading')) return player.toggle();
+  // the session ended while paused: nothing to resume
+  if (!s.isLive) return mine ? player.stop() : undefined;
+  if (mine) return player.toggle();
   player.play({ kind: 'live', id: 'live', title: s.sessionTitle ?? 'huismax dj channel', url: s.streamUrl });
 };
 
@@ -45,7 +51,7 @@ export function startAudioBar() {
 
   btn.addEventListener('click', () => {
     const ps = player.state();
-    if (ps.source && ps.status !== 'error') player.toggle();
+    if (ps.source && ps.source.kind !== 'live' && ps.status !== 'error') player.toggle();
     else playLive();
   });
   progress.addEventListener('click', (e) => {
@@ -55,9 +61,11 @@ export function startAudioBar() {
   // Space toggles playback when nothing interactive has focus.
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'Space' || (e.target as HTMLElement).closest('input, textarea, button, a, [tabindex], dialog')) return;
-    if (!player.state().source) return;
+    const ps = player.state();
+    if (!ps.source) return;
     e.preventDefault();
-    player.toggle();
+    if (ps.source.kind === 'live') playLive();
+    else player.toggle();
   });
 
   // Mini visualizer.
