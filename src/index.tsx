@@ -124,8 +124,9 @@ app.get('/404', (c) => notFound(c));
 const notFound = (c: C): Promise<Response> => page(c, 'not-found', '404', () => <NotFound path={c.req.path} />, 404);
 
 // Trailing slashes → canonical path.
-// Leading slashes are collapsed too, so `//evil.example/` can't become a redirect to another site.
-app.get('/:p{.+/$}', (c) => c.redirect(`/${c.req.path.replace(/^[/\\]+|\/+$/g, '')}`, 301));
+// Leading slashes are collapsed too, so `//evil.example/` can't become a redirect to another site. Tabs and
+// newlines go first: browsers drop them from a Location, so `/%09/evil.example/` would otherwise become `//evil.example`.
+app.get('/:p{.+/$}', (c) => c.redirect(`/${c.req.path.replace(/[\t\n\r]/g, '').replace(/^[/\\]+|\/+$/g, '')}`, 301));
 
 /* ——— uploaded images ——— */
 
