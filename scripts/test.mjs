@@ -17,6 +17,7 @@ await build({
   target: 'node22',
   outdir,
   outExtension: { '.js': '.mjs' },
+  loader: { '.sql': 'text' },
   jsx: 'automatic',
   jsxImportSource: 'hono/jsx',
   banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },

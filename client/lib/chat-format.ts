@@ -13,8 +13,8 @@ export type LinkPolicy = ((href: string) => boolean) | null;
 
 export const isAllowed = (href: string, allowed: LinkPolicy) => !!allowed && allowed(href);
 
-// [label](url) · https://… · a site path like /music (after a space, a bracket or the start)
-const TOKEN = /\[([^\]\n]{1,200})\]\(([^)\s]{1,500})\)|(https?:\/\/[^\s<>"'`]+)|(^|[\s(“"'])(\/[a-z][\w\-/]*)/g;
+// [label](url, one level of parentheses allowed) · https://… · a site path like /music (after a space, a bracket or the start)
+const TOKEN = /\[([^\]\n]{1,200})\]\(((?:[^()\s]|\([^()\s]*\)){1,500})\)|(https?:\/\/[^\s<>"'`]+)|(^|[\s(“"'])(\/[a-z][\w\-/]*)/g;
 const TRAIL = /[.,;:!?)\]}"'”’]+$/;
 
 export function inline(text: string, allowed: LinkPolicy): Inline[] {

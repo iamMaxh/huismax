@@ -34,6 +34,7 @@ let scope = new Scope();
 function mount(main: HTMLElement) {
   scope = new Scope();
   paintLive(main);
+  chat.sync(main);
   // Staggered entrance for anything marked [data-reveal] or list rows, via CSS.
   main.classList.add('is-entering');
   requestAnimationFrame(() => requestAnimationFrame(() => main.classList.remove('is-entering')));
@@ -49,7 +50,7 @@ const router = startRouter({
 
 startPalette(router.navigate);
 startMenu(router.navigate);
-startChat();
+const chat = startChat();
 startAudioBar();
 startLivePolling();
 

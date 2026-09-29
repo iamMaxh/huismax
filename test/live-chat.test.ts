@@ -222,3 +222,18 @@ test('format: html stays literal text; lists and paragraphs survive', () => {
   assert.deepEqual(blocks[1].t === 'p' && blocks[1].inline, [{ t: 'text', v: 'Max does:' }]);
   assert.deepEqual(blocks[2].t === 'list' && blocks[2].items.length, 2);
 });
+
+// ——— review fixes ———
+
+test('api: `data: null` on token/done neither throws nor hangs', async () => {
+  stubFetch({ chunks: ['event: token\ndata: null\n\n', ev('token', { content: 'ok' }), 'event: done\ndata: null\n\n'] });
+  const tokens: string[] = [];
+  const out = await streamAssistantMessage('q', [], { onToken: (t) => tokens.push(t) }, new AbortController().signal);
+  assert.deepEqual(out, { status: 'done', model: undefined });
+  assert.deepEqual(tokens, ['ok']);
+});
+
+test('format: a markdown link with parentheses in its URL is consumed whole', () => {
+  const parts = inline('see [x](javascript:alert(1)) now', allow);
+  assert.deepEqual(parts, [{ t: 'text', v: 'see x now' }]);
+});
