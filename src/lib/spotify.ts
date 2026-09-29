@@ -8,8 +8,12 @@ import type { Env } from './env';
 export const SCOPES = 'user-read-currently-playing user-read-recently-played user-top-read';
 
 export type Track = {
+  /** Spotify track id (null for local files); keys the lyrics */
+  id: string | null;
   name: string;
   artists: string;
+  /** the first credited artist, for lyrics lookups */
+  leadArtist: string;
   album: string;
   artwork: string | null;
   /** small artwork for lists */
@@ -144,6 +148,7 @@ async function api<T>(env: Env, path: string, retried = false): Promise<T | null
 /* ——— mapping ——— */
 
 type SpTrack = {
+  id?: string | null;
   name: string;
   duration_ms: number;
   external_urls?: { spotify?: string };
@@ -154,8 +159,10 @@ type SpTrack = {
 function toTrack(t: SpTrack, extra: Partial<Track> = {}): Track {
   const images = [...(t.album?.images ?? [])].sort((a, b) => b.width - a.width);
   return {
+    id: t.id ?? null,
     name: t.name,
     artists: (t.artists ?? []).map((a) => a.name).join(', '),
+    leadArtist: t.artists?.[0]?.name ?? '',
     album: t.album?.name ?? '',
     artwork: images[0]?.url ?? null,
     thumb: images.find((i) => i.width <= 300)?.url ?? images[0]?.url ?? null,
@@ -181,7 +188,8 @@ export async function nowPlaying(env: Env): Promise<NowResult> {
       return {
         state: cur.is_playing ? 'playing' : 'paused',
         track: toTrack(cur.item, { progressMs: cur.progress_ms ?? 0, isPlaying: cur.is_playing }),
-        fetchedAt,
+        // the moment progress_ms was read (after any token refresh), so clients can add the time since
+        fetchedAt: new Date().toISOString(),
       };
     }
     const recent = await api<{ items: { track: SpTrack; played_at: string }[] }>(env, '/v1/me/player/recently-played?limit=1');

@@ -17,6 +17,7 @@ src/              worker (server-rendered pages + API)
   index.tsx       routes
   lib/live.ts     live status: mock → KV override → env vars
   lib/spotify.ts  Spotify OAuth + now playing / recent (tokens never leave the worker)
+  lib/lyrics.ts   lyrics of the song playing, from LRCLIB (search, pick the recording, parse LRC)
   lib/cms.ts      CMS collections, field rules, settings (D1)
   lib/db.ts       applies migrations/ and the first content from inside the worker
   lib/content.ts  what the public pages read (falls back to defaults if D1 is down)
@@ -30,6 +31,7 @@ client/           browser code, bundled by scripts/build.mjs into public/assets
   lib/menu.ts     the Menu overlay
   lib/palette.ts  hidden ⌘K / "/" command palette (easter egg)
   lib/spotify.ts  polls /api/spotify/now, extrapolates progress between polls
+  lib/lyrics.ts   the song's lyrics and which line is being sung (from the same progress)
   pages/          per-page behaviour
   styles/         tokens → base → layout → components → pages
 public/           static files served as-is
@@ -86,6 +88,21 @@ Public endpoints (edge-cached, safe to poll):
 - `GET /api/spotify/recent` → recently played (deduplicated) + on repeat (top tracks, last 4 weeks).
 
 `/api/spotify/login`, `/api/spotify/disconnect` are admin-only; `/api/spotify/callback` only accepts a one-time state issued by login.
+
+### Lyrics
+
+Synced lyrics come from [LRCLIB](https://lrclib.net), which is free and needs no key, so there is nothing to set up. The full song is on /music under the progress bar; the homepage card shows the line being sung.
+
+- **Lookup** (`src/lib/lyrics.ts`):
+  1. The worker searches LRCLIB for title + first artist. If that finds nothing, it tries the bare title (without "feat.", "- Remastered", "(Live)" and similar), then a free-text search.
+  2. It keeps results whose title and artist match, ignoring case, accents and punctuation.
+  3. Synced lyrics are used only from a recording within 3 s of Spotify's duration. Otherwise the words are shown unsynced, or the song is marked instrumental or "none found".
+- **`GET /api/spotify/lyrics?id=<spotify track id>`** answers only for the track `/api/spotify/now` reports (anything else: 409), so it can't be used as an open lyrics proxy.
+- **One lookup per song.** The answer stays at the edge: a week when found, a day when nothing was found, two minutes when LRCLIB failed. It also stays in the browser, and in the page for the rest of the visit.
+- **Sync:**
+  1. `/api/spotify/now` carries `ageMs` (how old the edge-cached answer is). The page adds it to Spotify's `progress_ms` and to the time since the poll arrived.
+  2. The current line is the last one whose start ≤ that + 250 ms.
+  3. The page sleeps until the next line starts. While synced lyrics show, it polls every 10 s instead of 20 s, so a seek or skip is caught sooner.
 
 ## Reply
 

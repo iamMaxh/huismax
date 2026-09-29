@@ -29,6 +29,60 @@
 .np-progress .bar { flex: 1; height: 2px; background: var(--line-2); overflow: hidden; }
 .np-progress .bar-fill { height: 100%; background: var(--fg); transform-origin: left; transform: scaleX(0); transition: transform 500ms linear; }
 .np-empty { margin-top: 12px; }
+/* with lyrics the text can outgrow the artwork: the artwork then stays at the top */
+.np-art { align-self: start; }
+
+/* ——— lyrics (client/pages/music-lyrics.ts): a log of the song, the line being sung carries the cursor ——— */
+.np-lyrics { --gap: 6px; display: grid; gap: 12px; max-width: 520px; margin-top: 26px; }
+.np-lyrics-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0.6em; min-height: 32px; color: var(--fg-3); }
+:is(.np-lyrics-note, .np-lyrics-src)::before { content: '· '; }
+.np-lyrics[data-state='loading'] .np-lyrics-note::after { content: '_'; animation: blink 1.1s steps(1) infinite; }
+.np-lyrics-src { color: var(--fg-3); transition: color var(--fast); }
+.np-lyrics-toggle { margin-left: auto; min-height: 32px; font: inherit; color: var(--fg-2); transition: color var(--fast); }
+.np-lyrics-toggle::before { content: '+ '; }
+.np-lyrics.is-open .np-lyrics-toggle::before { content: '− '; }
+:is(.np-lyrics-src, .np-lyrics-toggle):is(:hover, :focus-visible) { color: var(--fg); }
+
+.np-lyrics-view {
+  --lh: 1.38;
+  position: relative;
+  /* four lines: the one before, the one being sung, two to come */
+  height: calc(4 * var(--lh) * 1em + 3 * var(--gap));
+  overflow: hidden;
+  font: 400 clamp(17px, 1.45vw, 21px) / var(--lh) var(--font-sans);
+  letter-spacing: -0.015em;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 74%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 74%, transparent 100%);
+  transition: height 460ms var(--ease), opacity var(--mid) var(--ease);
+  scrollbar-width: none;
+}
+.np-lyrics-view::-webkit-scrollbar { display: none; }
+.np-lyrics.is-open .np-lyrics-view {
+  height: min(62vh, calc(13 * var(--lh) * 1em + 12 * var(--gap)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 86%, transparent 100%);
+}
+/* room to bring the last lines up to where the song is followed */
+.np-lyrics.is-open .np-lyrics-lines { padding: 1.2em 0 45%; }
+.np-lyrics-lines { display: grid; gap: var(--gap); }
+
+.lyr { display: grid; grid-template-columns: 2.6em minmax(0, 1fr); gap: 14px; align-items: baseline; color: var(--fg-3); transition: color 360ms var(--ease), opacity 360ms var(--ease); }
+.lyr-t { font: 400 var(--t-xs) / 1 var(--font-mono); font-variant-numeric: tabular-nums; opacity: 0.8; }
+.lyr-x { min-width: 0; overflow-wrap: anywhere; }
+.lyr.is-past { opacity: 0.5; }
+.lyr.is-now { color: var(--fg); opacity: 1; }
+.lyr.is-now .lyr-x::after { content: '_'; animation: blink 1.1s steps(1) infinite; }
+.lyr.is-break .lyr-x { font-family: var(--font-mono); font-size: 0.8em; }
+.np-lyrics[data-paused] .np-lyrics-view { opacity: 0.55; }
+.np-lyrics[data-paused] .lyr.is-now .lyr-x::after { animation: none; opacity: 0.4; }
+/* unsynced: plain text, no times, nothing highlighted */
+.np-lyrics[data-state='plain'] .lyr { grid-template-columns: minmax(0, 1fr); color: var(--fg-2); }
+.lyr.is-gap { height: 0.5em; }
+@media (prefers-reduced-motion: reduce) {
+  .np-lyrics-view, .lyr { transition: none; }
+}
 
 /* ——— lists ——— */
 .music-cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 80px); padding-bottom: clamp(56px, 8vw, 96px); }
@@ -82,6 +136,8 @@ a.pick:hover, a.pick:focus-visible { padding-left: 6px; }
 
 @media (max-width: 800px) {
   .np { grid-template-columns: 1fr; }
+  .np-lyrics { margin-top: 18px; }
+  .lyr { grid-template-columns: 2.6em minmax(0, 1fr); gap: 10px; }
   .np-art { max-width: 320px; }
   .music-cols { grid-template-columns: 1fr; }
   .artist-list:hover .artist { opacity: 1; }

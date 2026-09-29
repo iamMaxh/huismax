@@ -2,6 +2,7 @@
  * Filled client-side from /api/spotify/now. Stays hidden until there is a real track.
  * `feature` is the same component at homepage size: name and artist on their own lines, plus progress.
  * `pending` reserves its space (Spotify is connected, the first poll is on its way) so nothing jumps.
+ * The feature also carries the line being sung (client/pages/home.ts), under the card; the full lyrics are on /music.
  */
 export const Listening = ({ class: cls = '', feature = false, pending = false }: { class?: string; feature?: boolean; pending?: boolean }) => (
   <a
@@ -32,6 +33,11 @@ export const Listening = ({ class: cls = '', feature = false, pending = false }:
       <span class="listening-text">
         <span class="listening-track" data-listening-track />
         <span class="listening-state mono dim" data-listening-state />
+      </span>
+    )}
+    {feature && (
+      <span class="listening-lyric" data-listening-lyric aria-hidden="true" hidden>
+        <span class="listening-lyric-text" data-listening-lyric-text />
       </span>
     )}
   </a>

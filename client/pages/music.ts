@@ -1,6 +1,7 @@
 import { $ } from '../lib/dom';
 import { ago, fmtTime, spotify, type Now, type Track } from '../lib/spotify';
 import type { PageInit } from '../main';
+import { musicLyrics } from './music-lyrics';
 
 const labels: Record<Now['state'], string> = {
   playing: 'now playing',
@@ -62,6 +63,7 @@ export const initMusic: PageInit = (main, scope) => {
   const id = setInterval(tick, 500);
   scope.add(() => clearInterval(id));
   scope.add(spotify.subscribe(paint) as () => void);
+  musicLyrics(np, scope);
 
   /* ——— lists ——— */
   const row = (t: Track, meta: string) => {
