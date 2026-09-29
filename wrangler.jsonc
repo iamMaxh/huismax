@@ -30,5 +30,9 @@
   "d1_databases": [{ "binding": "DB", "database_name": "huismax-db", "migrations_dir": "migrations" }],
   // Uploaded photos and DJ covers (src/lib/media.ts). Also created on first deploy.
   "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "huismax-media" }],
+  // Branch previews (`wrangler preview`, which Workers Builds runs for every branch but main) require this block.
+  // Empty on purpose: a preview gets none of the bindings above (no production KV, D1, R2, vars or secrets),
+  // so unreviewed code can't read or change the live site's data; its pages fall back to their defaults.
+  "previews": {},
   "observability": { "enabled": true }
 }
