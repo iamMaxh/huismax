@@ -9,9 +9,10 @@ import { Admin, AdminLogin } from './views/admin';
 import { authorizeUrl, configured, connectedAs, disconnect, handleCallback, nowPlaying, recent, setupHints } from './lib/spotify';
 import { ensureDb } from './lib/db';
 import * as cms from './lib/cms';
-import { identities, items, photos, sessions, settings, site, type Site } from './lib/content';
+import { identities, items, photos, requests, sessions, settings, site, type Site } from './lib/content';
 import { deleteKeys, dim, LIMITS, putImage, readImage, serve, UploadError, validKey } from './lib/media';
 import { allowed, emailMessage, listMessages, saveMessage, underCap, validateReply } from './lib/reply';
+import { REQUEST_LIMIT, saveRequest, underRequestCap, validateRequest } from './lib/requests';
 import { chat } from './lib/chat';
 import { radioStatus } from './lib/radio';
 import { adminData, type AdminData } from './lib/admin-data';
@@ -98,8 +99,8 @@ app.get('/hiking', async (c) => {
 });
 app.get('/trail-runner', (c) => c.redirect('/hiking', 301));
 app.get('/dj', async (c) => {
-  const list = await sessions(c.env);
-  return page(c, 'dj', 'DJ', (live, s) => <DJ live={live} sessions={list} intro={intro(s, 'dj')} />);
+  const [list, picked] = await Promise.all([sessions(c.env), requests(c.env)]);
+  return page(c, 'dj', 'DJ', (live, s) => <DJ live={live} sessions={list} requests={picked} ready={!!c.env.DB} intro={intro(s, 'dj')} />);
 });
 app.get('/vibe-coder', async (c) => {
   const list = await items(c.env, 'projects');
@@ -168,6 +169,30 @@ app.post('/api/reply', async (c) => {
   if (!(await underCap(c.env))) return c.json({ error: 'too many messages right now. try again later' }, 429);
   const saved = await saveMessage(c.env, m);
   c.executionCtx.waitUntil(emailMessage(c.env, s, saved));
+  return c.json({ ok: true });
+});
+
+/* ——— requests for the next live set (public, the form on /dj) ——— */
+
+app.post('/api/dj/requests', async (c) => {
+  if (!sameOrigin(c)) return c.json({ error: 'bad origin' }, 403);
+  if (!c.env.DB) return c.json({ error: 'requests are offline right now' }, 503);
+  // hiding the DJ page in /admin also closes the form
+  if (!(await settings(c.env)).pages.dj) return c.json({ error: 'not found' }, 404);
+  const b = await c.req.json<Record<string, unknown>>().catch(() => null);
+  if (!b) return c.json({ error: 'invalid json' }, 400);
+  if (typeof b.website === 'string' && b.website) return c.json({ ok: true }); // honeypot
+  let r;
+  try {
+    r = validateRequest(b);
+  } catch (e) {
+    return c.json({ error: (e as Error).message }, 400);
+  }
+  // the site-wide cap first: it only reads, so a flood doesn't spend KV writes
+  if (!(await underRequestCap(c.env))) return c.json({ error: 'too many requests right now. try again later' }, 429);
+  const limited = await allowed(c.env, c.req.header('CF-Connecting-IP') ?? 'local', REQUEST_LIMIT);
+  if (limited) return c.json({ error: limited }, 429);
+  await saveRequest(c.env, r);
   return c.json({ ok: true });
 });
 

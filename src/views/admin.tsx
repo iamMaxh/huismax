@@ -370,7 +370,18 @@ export const Admin = ({ live, radio, presence, kv, spotify, data, dbError }: { l
         </Section>
 
         <Section id="dj" settings={s} note="published sessions appear on /dj, highest number first. none published → the page keeps its empty state.">
-          {!s ? <NoDb error={dbError} /> : <Coll name="dj" label="sessions" note="new sessions start as drafts. save one first, then add a cover." />}
+          {!s ? (
+            <NoDb error={dbError} />
+          ) : (
+            <>
+              <Coll name="dj" label="sessions" note="new sessions start as drafts. save one first, then add a cover." />
+              <Coll
+                name="requests"
+                label="requests"
+                note="what visitors want to hear next live, from the form on /dj. new ones stay hidden: publish the ones you pick and they show on /dj (newest 20)."
+              />
+            </>
+          )}
         </Section>
 
         <Section id="reply" settings={s}>

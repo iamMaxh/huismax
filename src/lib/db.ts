@@ -1,12 +1,16 @@
 import type { Env } from './env';
 import m0001 from '../../migrations/0001_cms.sql';
+import m0002 from '../../migrations/0002_requests.sql';
 
 /**
  * D1 schema + first content, applied by the worker itself: the site deploys from a git push, so nobody runs
  * `wrangler d1 migrations apply`. Uses the same `d1_migrations` table wrangler does, so either way works.
  * Migrations are additive and idempotent (IF NOT EXISTS); re-running one is harmless.
  */
-const MIGRATIONS: [name: string, sql: string][] = [['0001_cms.sql', m0001]];
+const MIGRATIONS: [name: string, sql: string][] = [
+  ['0001_cms.sql', m0001],
+  ['0002_requests.sql', m0002],
+];
 
 let done = false;
 

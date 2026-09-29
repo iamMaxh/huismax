@@ -38,6 +38,15 @@ export async function items(env: Env, name: CollectionName, filter?: Record<stri
   return safe(name, [], () => list(env, name, { onlyPublic: true, filter }));
 }
 
+/** A request Max picked for the next live set (published in /admin). */
+export type PublicRequest = { id: string; request: string; name: string };
+
+/** The picked requests on /dj, newest first. */
+export async function requests(env: Env): Promise<PublicRequest[]> {
+  const list = await items(env, 'requests');
+  return list.slice(0, 20).map((r) => ({ id: String(r.id), request: String(r.request ?? ''), name: String(r.name ?? '') }));
+}
+
 /** What every page's layout needs: nav/footer settings and the external links. */
 export type Site = { settings: Settings; links: Item[] };
 

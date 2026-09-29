@@ -22,6 +22,7 @@ src/              worker (server-rendered pages + API)
   lib/content.ts  what the public pages read (falls back to defaults if D1 is down)
   lib/media.ts    uploaded images in R2: type sniffing, safe keys, /media/<key>
   lib/reply.ts    /reply messages: stored in D1, emailed with Resend
+  lib/requests.ts /dj requests for the next live set (D1, published in /admin)
   views/          layout, components, pages
 client/           browser code, bundled by scripts/build.mjs into public/assets
   lib/router.ts   same-origin navigation that swaps <main> only (keeps audio playing)
@@ -36,10 +37,10 @@ public/           static files served as-is
 
 ## Content (CMS)
 
-Everything on the site is edited in `/admin`: homepage text and identities, projects, music sections, photos (photographer and hiking), now, DJ sessions, reply inbox, links, page and menu visibility. Nothing content-related lives in the source.
+Everything on the site is edited in `/admin`: homepage text and identities, projects, music sections, photos (photographer and hiking), now, DJ sessions and requests, reply inbox, links, page and menu visibility. Nothing content-related lives in the source.
 
 - Structured content is in D1 (`DB`), photos and DJ covers in R2 (`MEDIA`). Both are created automatically on the first deploy, like the KV namespace. R2 has to be enabled once on the Cloudflare account (R2 → Get started) or the deploy fails.
-- The worker applies `migrations/*.sql` itself (tracked in `d1_migrations`, the same table `wrangler d1 migrations apply` uses), then writes the first content once. Migrations only ever add; never edit an applied one, add `0002_….sql` and list it in `src/lib/db.ts`.
+- The worker applies `migrations/*.sql` itself (tracked in `d1_migrations`, the same table `wrangler d1 migrations apply` uses), then writes the first content once. Migrations only ever add; never edit an applied one, add the next `000N_….sql` and list it in `src/lib/db.ts`.
 - Photos are resized and re-encoded in the browser before upload (which also drops EXIF/GPS). The worker checks the real file type and size and names the files itself. Unpublished photos are only visible to the admin.
 - /photographer and /hiking show seven empty frames (NOT 1 … NOT 7) that published photos fill in order.
 
@@ -94,6 +95,18 @@ Public endpoints (edge-cached, safe to poll):
 2. `/admin` → reply → set the address messages go to.
 
 The sender is the `EMAIL_FROM` variable (e.g. `Max <noreply@huismax.com>`, on a domain verified in Resend), or the one set in `/admin`. Without either, Resend's test sender `onboarding@resend.dev` is used, which only delivers to the email of your Resend account. Visitors are rate limited (one a minute, ten a day, keyed by a hash of the IP) and a hidden honeypot field drops bots.
+
+## DJ requests
+
+`/dj` asks "What should I play next live?". Visitors send a track, artist or vibe (200 characters) and an optional name (40). `POST /api/dj/requests` keeps each one in D1 as a draft. `/admin` → dj → requests lists them newest first. Publish the ones you pick and they show on /dj under "on the list" (the newest 20). Delete the rest.
+
+The same guards as /reply apply:
+- only this site's pages can send;
+- a honeypot field drops bots;
+- one request a minute and five a day per visitor (a hash of the IP, counted apart from /reply);
+- 30 an hour site-wide.
+
+Hiding the DJ page in /admin also closes the form.
 
 ## Live chat
 

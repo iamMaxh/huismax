@@ -35,22 +35,27 @@ export function ipBucket(ip: string) {
   return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':')}::/64`;
 }
 
+/** What one visitor may send: one a minute and `perDay` a day, counted under `key`. */
+export type Limit = { key: string; perDay: number; noun: string };
+export const REPLY_LIMIT: Limit = { key: 'reply', perDay: 10, noun: 'message' };
+
 /**
- * Rate limit per visitor: one message a minute, 10 a day. Keyed by a hash of the IP, never the IP itself.
- * Returns why a message can't go through (the visitor sees it), or '' when it can.
+ * Rate limit per visitor (for /reply: one message a minute, 10 a day). Keyed by a hash of the IP, never the IP itself.
+ * Returns why it can't go through (the visitor sees it), or '' when it can.
  */
-export async function allowed(env: Env, ip: string) {
+export async function allowed(env: Env, ip: string, limit: Limit = REPLY_LIMIT) {
   if (!env.STATE) return '';
-  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`reply:${ipBucket(ip)}`)))]
+  const { key, perDay, noun } = limit;
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${key}:${ipBucket(ip)}`)))]
     .slice(0, 8)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-  const [recent, day] = await Promise.all([env.STATE.get(`reply:recent:${h}`), env.STATE.get(`reply:day:${h}`)]);
-  if (Number(day ?? 0) >= 10) return "that's 10 today. try again tomorrow";
-  if (recent) return 'one message a minute, please';
+  const [recent, day] = await Promise.all([env.STATE.get(`${key}:recent:${h}`), env.STATE.get(`${key}:day:${h}`)]);
+  if (Number(day ?? 0) >= perDay) return `that's ${perDay} today. try again tomorrow`;
+  if (recent) return `one ${noun} a minute, please`;
   await Promise.all([
-    env.STATE.put(`reply:recent:${h}`, '1', { expirationTtl: 60 }),
-    env.STATE.put(`reply:day:${h}`, String(Number(day ?? 0) + 1), { expirationTtl: 86400 }),
+    env.STATE.put(`${key}:recent:${h}`, '1', { expirationTtl: 60 }),
+    env.STATE.put(`${key}:day:${h}`, String(Number(day ?? 0) + 1), { expirationTtl: 86400 }),
   ]);
   return '';
 }
