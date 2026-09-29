@@ -72,8 +72,8 @@ export const initHome: PageInit = (main, scope) => {
 };
 
 /**
- * The DJ console's spectrum at album-art size, while the channel is live: the real audio once it plays on this page
- * (the stream allows Web Audio), before that the channel's pulse. Off air the card is hidden and nothing is drawn.
+ * The DJ console's spectrum at album-art size, while the channel is live: still until the set plays, then the real
+ * audio (the stream allows Web Audio). Off air the card is hidden and nothing is drawn.
  */
 function spectrum(canvas: HTMLCanvasElement, scope: Parameters<PageInit>[1]) {
   const { ctx, size } = fitCanvas(canvas, scope);
@@ -85,7 +85,7 @@ function spectrum(canvas: HTMLCanvasElement, scope: Parameters<PageInit>[1]) {
   scope.on(window, 'themechange', () => ((fg = cssVar('--fg')), (red = cssVar('--live'))));
   const draw = (t: number) => {
     if (!live.get().isLive || !size.w) return;
-    readSpectrum(data, t, player.state().status === 'playing' ? 1 : 0.55);
+    readSpectrum(data, t, player.state().status === 'playing' ? 1 : 0);
     const { w, h } = size;
     const bw = w / n;
     ctx.clearRect(0, 0, w, h);

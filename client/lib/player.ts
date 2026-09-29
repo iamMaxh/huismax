@@ -155,9 +155,12 @@ export const player = {
   },
   /** Fills `out` with frequency data. Returns false when there is no real signal to read. */
   spectrum(out: Uint8Array): boolean {
-    if (!analyser || state.status !== 'playing') return false;
+    // Only the element that is playing now counts: after a fallback to plain playback (no CORS)
+    // the analyser still exists but hears nothing.
+    if (!analyser || !routed || state.status !== 'playing') return false;
     analyser.getByteFrequencyData(out as Uint8Array<ArrayBuffer>);
-    return true;
+    // a browser that routes the stream yet hands the analyser silence: the stand-in instead
+    return out.some((v) => v > 0);
   },
   get audioContext() {
     return ctx;
