@@ -49,7 +49,7 @@ Everything on the site is edited in `/admin`: homepage text and identities, proj
 
 - **status**: presets (locked in, afk, touching grass…) or any custom text; shown under the identities on the homepage.
 - **♪ spotify**: connect once; the site then shows what's playing (or last played) with the album artwork.
-- **huismax dj channel**: going live replaces the status with `● LIVE / huismax dj channel` everywhere; ending the session brings the status back.
+- **huismax dj channel**: live replaces the status with `● LIVE / huismax dj channel` everywhere; when it ends the status comes back. The radio makes it live on its own (below); this switch is for any other stream, and its session title also names radio sessions.
 
 Status and live are stored in the `STATE` KV namespace (created automatically on first deploy). Public pages poll `GET /api/presence` every 15s, so changes show up within about a minute (KV is eventually consistent across regions).
 
@@ -62,7 +62,16 @@ curl -X POST https://<site>/api/admin/presence -H "Authorization: Bearer $TOKEN"
   -d '{"status":"probably coding","listening":{"title":"Japanese Denim","artist":"Daniel Caesar"}}'
 ```
 
-`GET /api/live-status` stays available on its own. For a real stream later, replace `readSource` in `src/lib/live.ts`.
+`GET /api/live-status` stays available on its own.
+
+## Radio
+
+The DJ channel's own radio is Icecast at radio.huismax.com, fed by BUTT. The site is live while Icecast has the `/live.mp3` mount, so starting BUTT goes live and stopping it ends the session. The site notices within about 15–30 s.
+
+- Browsers play `RADIO_STREAM_URL` (in `wrangler.jsonc` vars) straight from Icecast. The worker never carries audio.
+- The worker reads `status-json.xsl` next to the stream (or `RADIO_STATUS_URL`) in `src/lib/radio.ts`. It shares the answer at the edge for 10 s and waits at most 2.5 s. Anything unclear counts as off air.
+- `GET /api/dj-status` → `{ live, listeners }`. The DJ page polls it every 15 s for the listener count, and `/api/presence` carries the same live state to every page.
+- The stream should send `Access-Control-Allow-Origin: https://huismax.com` (it does). That lets the visualizer read the real audio and lets volume work on iOS. Without it the stream still plays.
 
 ## Spotify
 

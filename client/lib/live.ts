@@ -69,7 +69,8 @@ function set(next: LiveStatus, p: Presence) {
   if (changed) listeners.forEach((fn) => fn(current));
 }
 
-async function poll() {
+/** Fetches the status now (the DJ page does when the radio's own status disagrees with the last one). */
+export async function poll() {
   try {
     const q = new URLSearchParams(location.search).get('live');
     const res = await fetch(`/api/presence${q ? `?live=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });

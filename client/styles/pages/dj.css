@@ -133,3 +133,33 @@
   .mix-wave { display: none; }
   .mix-cover { width: 48px; height: 48px; }
 }
+
+/* ——— the radio: listener count and volume, in the console's own terms ——— */
+.console-count { font-size: var(--t-md); font-variant-numeric: tabular-nums; }
+.console-volume { display: grid; }
+/* one hairline, filled up to the level (--v, set by client/pages/dj.ts), and a small round thumb */
+.console-volume input {
+  -webkit-appearance: none; appearance: none;
+  width: 132px; height: 20px; margin: 0;
+  background:
+    linear-gradient(var(--fg), var(--fg)) 0 50% / calc(var(--v, 100) * 1%) 1px no-repeat,
+    linear-gradient(var(--line-2), var(--line-2)) 0 50% / 100% 1px no-repeat;
+  cursor: pointer;
+}
+.console-volume input::-webkit-slider-runnable-track { height: 20px; background: transparent; }
+.console-volume input::-moz-range-track { height: 1px; background: transparent; }
+.console-volume input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px; margin-top: 4px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform var(--fast);
+}
+.console-volume input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--fg); transition: transform var(--fast); }
+.console-volume input:hover::-webkit-slider-thumb, .console-volume input:focus-visible::-webkit-slider-thumb { transform: scale(1.25); }
+.console-volume input:hover::-moz-range-thumb, .console-volume input:focus-visible::-moz-range-thumb { transform: scale(1.25); }
+.console-volume input:focus-visible { outline: 1px solid var(--fg-2); outline-offset: 6px; }
+@media (max-width: 860px) {
+  /* one column on a phone: the live mark sits under the title instead of opening a second column (crumb beside title) */
+  .dj-head .live-mark { grid-column: 1; grid-row: auto; }
+}

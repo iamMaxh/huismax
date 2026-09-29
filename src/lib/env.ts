@@ -25,6 +25,9 @@ export type Env = {
   /** Live chat: the bridge on Max's server, through the Cloudflare Tunnel (https://…/chat), and the secret it expects. */
   CHAT_BRIDGE_URL?: string;
   CHAT_BRIDGE_SECRET?: string;
+  /** The radio (Icecast): the stream browsers play, and its status-json.xsl (default: next to the stream). */
+  RADIO_STREAM_URL?: string;
+  RADIO_STATUS_URL?: string;
   /** Test overrides; leave unset in production. */
   SPOTIFY_ACCOUNTS_BASE?: string;
   SPOTIFY_API_BASE?: string;
