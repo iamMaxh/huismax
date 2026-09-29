@@ -1,0 +1,35 @@
+# Live chat bridge (bridge/server.mjs) under systemd. Install:
+#   sudo mkdir -p /opt/huismax-chat-bridge /etc/huismax
+#   sudo cp bridge/chat-bridge.mjs bridge/server.mjs /opt/huismax-chat-bridge/
+#   sudo cp bridge/chat-bridge.env.example /etc/huismax/chat-bridge.env   # fill it in, chmod 600
+#   sudo cp bridge/chat-bridge.service /etc/systemd/system/huismax-chat-bridge.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now huismax-chat-bridge
+#   journalctl -u huismax-chat-bridge -f
+# ExecStart needs the absolute path of Node 22+: `command -v node`.
+
+[Unit]
+Description=huismax live chat bridge (Cloudflare Tunnel → OpenClaw website agent)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/huismax-chat-bridge/server.mjs
+EnvironmentFile=/etc/huismax/chat-bridge.env
+Restart=on-failure
+RestartSec=3
+# a throwaway user that can read the two files and write nowhere
+DynamicUser=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

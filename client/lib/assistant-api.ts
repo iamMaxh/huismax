@@ -1,13 +1,13 @@
 import { SSEParser } from './sse';
 
 /**
- * The only code that talks to Max's assistant API. The browser knows this one URL and nothing else:
- * no keys, no tunnel, no model host. Everything behind it is Max's backend.
+ * The only code that talks to Max's assistant. The browser knows this one URL, on this site, and nothing else:
+ * no keys, no tunnel, no model host. The worker (src/lib/chat.ts) takes it from there to Max's own server.
  *
  *   POST {ENDPOINT}  { message, history: [{ role, content }] }
- *   → text/event-stream: ready · token { content } · done { done, model } · error { error }
+ *   → text/event-stream: ready · token { content } · done { done, model? } · error { error }
  */
-export const ENDPOINT = 'https://api.huismax.com/v1/chat/stream';
+export const ENDPOINT = '/api/chat';
 
 /** Past messages sent with a question (the question itself goes in `message`). */
 export const HISTORY_LIMIT = 8;

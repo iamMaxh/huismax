@@ -22,6 +22,9 @@ export type Env = {
   REPLY_TO?: string;
   /** Resend sender, e.g. `Max <noreply@huismax.com>` (domain verified in Resend); /admin can override it */
   EMAIL_FROM?: string;
+  /** Live chat: the bridge on Max's server, through the Cloudflare Tunnel (https://…/chat), and the secret it expects. */
+  CHAT_BRIDGE_URL?: string;
+  CHAT_BRIDGE_SECRET?: string;
   /** Test overrides; leave unset in production. */
   SPOTIFY_ACCOUNTS_BASE?: string;
   SPOTIFY_API_BASE?: string;
