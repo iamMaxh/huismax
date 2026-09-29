@@ -115,7 +115,9 @@ export async function streamAssistantMessage(message: string, history: HistoryIt
       for (const ev of parser.feed(decoder.decode(chunk.value, { stream: true }))) {
         let data: Record<string, unknown> = {};
         try {
-          data = ev.data ? JSON.parse(ev.data) : {};
+          const v: unknown = ev.data ? JSON.parse(ev.data) : {};
+          // `data: null` or a bare number is no payload, but a done or error event still counts
+          if (v !== null && typeof v === 'object') data = v as Record<string, unknown>;
         } catch {
           continue; // a malformed event is skipped, not shown
         }

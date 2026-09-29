@@ -1,6 +1,6 @@
 import { $, readJSON } from './dom';
 import { format, type Block, type Inline, type LinkPolicy } from './chat-format';
-import { ERROR_TEXT, streamAssistantMessage, type HistoryItem } from './assistant-api';
+import { ERROR_TEXT, streamAssistantMessage, type HistoryItem, type Outcome } from './assistant-api';
 
 /**
  * Live chat with Max's AI Assistant. A panel outside <main>, so a conversation survives page changes
@@ -124,6 +124,7 @@ function render(target: HTMLElement, blocks: Block[]) {
 export function startChat() {
   let log = store.load();
   let controller: AbortController | null = null;
+  let startedAt = 0;
   const links = linkPolicy();
 
   const dialog = el('dialog', 'chat');
@@ -216,15 +217,20 @@ export function startChat() {
 
   const fit = () => {
     input.style.height = 'auto';
-    input.style.height = `${Math.min(input.scrollHeight, 168)}px`;
+    // scrollHeight leaves out the border: add it, or a one-line field shows a scrollbar
+    input.style.height = `${Math.min(input.scrollHeight + input.offsetHeight - input.clientHeight, 168)}px`;
   };
   const generating = (on: boolean) => {
+    // read focus before hiding: a hidden button drops it at once. A suggestion that was just removed counts as Send.
+    const at = document.activeElement;
+    const move = on ? at === send || !dialog.contains(at) : at === stop;
     send.hidden = on;
     stop.hidden = !on;
     dialog.toggleAttribute('data-busy', on);
+    // screen readers: no announcement per token, one when the answer settles
+    logEl.setAttribute('aria-busy', String(on));
     // focus follows the button that replaced the one in use
-    if (on && document.activeElement === send) stop.focus();
-    if (!on && document.activeElement === stop) input.focus();
+    if (move) (on ? stop : input).focus({ preventScroll: true });
   };
 
   async function ask(raw: string) {
@@ -244,22 +250,31 @@ export function startChat() {
     view.paint(answer, 'thinking');
     toBottom(true);
 
+    const convo = log;
     const ctl = (controller = new AbortController());
+    startedAt = performance.now();
     generating(true);
-    const outcome = await streamAssistantMessage(
-      question,
-      history,
-      {
-        onToken: (t) => {
-          answer.text += t;
-          view.paint(answer, 'streaming');
-          toBottom();
+    let outcome: Outcome;
+    try {
+      outcome = await streamAssistantMessage(
+        question,
+        history,
+        {
+          onToken: (t) => {
+            answer.text += t;
+            view.paint(answer, 'streaming');
+            toBottom();
+          },
         },
-      },
-      ctl.signal,
-    );
+        ctl.signal,
+      );
+    } catch {
+      outcome = { status: 'error', kind: 'server' };
+    }
     controller = null;
     generating(false);
+    // "new chat" cleared this conversation while it streamed: don't write the old answer back
+    if (log !== convo) return;
 
     if (outcome.status === 'stopped') answer.stopped = true;
     if (outcome.status === 'error') answer.error = ERROR_TEXT[outcome.kind];
@@ -269,24 +284,32 @@ export function startChat() {
     view.paint(answer);
     store.save(log);
     toBottom();
-    if (matchMedia('(pointer: fine)').matches && dialog.open) input.focus();
+    // back to the input, unless the visitor has moved focus somewhere else on the page
+    const at = document.activeElement;
+    if (matchMedia('(pointer: fine)').matches && dialog.open && (!at || at === document.body || dialog.contains(at))) input.focus();
   }
 
-  const openers = () => document.querySelectorAll<HTMLElement>('[data-chat-open]');
   let opener: HTMLElement | null = null;
+  // aria-expanded on every opener, including ones a page change just brought in
+  const sync = (root: ParentNode = document) => {
+    for (const b of root.querySelectorAll<HTMLElement>('[data-chat-open]')) b.setAttribute('aria-expanded', String(dialog.open));
+  };
   const open = () => {
     if (dialog.open) return;
-    dialog.show();
+    // full screen on a phone (chat.css, max-width 560px): modal, so the page behind is inert and back closes it
+    if (matchMedia('(max-width: 560px)').matches) dialog.showModal();
+    else dialog.show();
     document.documentElement.classList.add('chat-open');
-    for (const b of openers()) b.setAttribute('aria-expanded', 'true');
-    paintAll();
+    sync();
+    // the log is kept as it is (an answer may still be streaming into it); just show the latest
+    toBottom(true);
     if (matchMedia('(pointer: fine)').matches) input.focus();
     else $<HTMLElement>('[data-chat-close]', dialog)!.focus({ preventScroll: true });
   };
   const close = () => dialog.open && dialog.close();
   dialog.addEventListener('close', () => {
     document.documentElement.classList.remove('chat-open');
-    for (const b of openers()) b.setAttribute('aria-expanded', 'false');
+    sync();
     (opener?.isConnected ? opener : document.querySelector<HTMLElement>('.site-header [data-chat-open]'))?.focus({ preventScroll: true });
   });
 
@@ -300,7 +323,8 @@ export function startChat() {
   dialog.addEventListener('click', (e) => {
     const t = e.target as Element;
     if (t.closest('[data-chat-close]')) return close();
-    if (t.closest('[data-chat-stop]')) return controller?.abort();
+    // the second click of a double-click on Send lands on Stop: ignore it
+    if (t.closest('[data-chat-stop]')) return performance.now() - startedAt < 400 ? undefined : controller?.abort();
     if (t.closest('[data-chat-new]')) {
       controller?.abort();
       log = [];
@@ -314,7 +338,8 @@ export function startChat() {
     if (a && !a.target && matchMedia('(max-width: 720px)').matches) close();
   });
   dialog.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
+    // Esc that cancels an IME (pinyin) candidate is the IME's, not ours
+    if (e.key !== 'Escape' || e.isComposing || e.keyCode === 229) return;
     e.preventDefault();
     // Esc while an answer streams stops it first; the next Esc closes
     if (controller) controller.abort();
@@ -334,5 +359,6 @@ export function startChat() {
     ask(input.value);
   });
 
-  return { open, close };
+  paintAll();
+  return { open, close, sync };
 }
