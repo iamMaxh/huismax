@@ -51,7 +51,7 @@ const router = startRouter({
 startPalette(router.navigate);
 startMenu(router.navigate);
 const chat = startChat();
-startAudioBar();
+startAudioBar(router.navigate);
 startLivePolling();
 
 // Any [data-listen-live] button on any page starts the live stream in the global player.

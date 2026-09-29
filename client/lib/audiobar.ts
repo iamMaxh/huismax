@@ -4,6 +4,7 @@ import { player, type PlayerState } from './player';
 import { readSpectrum } from './viz';
 import { spotify } from './spotify';
 import { paintListening } from './listening';
+import { paletteLinks } from './nav';
 
 /** Every "listen live" button: starts the stream, then pauses and resumes it (at the live edge) instead of restarting. */
 export const playLive = () => {
@@ -18,7 +19,7 @@ export const playLive = () => {
 };
 
 /** Binds the persistent bottom bar to player + live state. */
-export function startAudioBar() {
+export function startAudioBar(navigate: (href: string) => void) {
   const bar = $('[data-audiobar]');
   if (!bar) return;
   const title = $('[data-player-title]', bar)!;
@@ -51,8 +52,12 @@ export function startAudioBar() {
 
   btn.addEventListener('click', () => {
     const ps = player.state();
-    if (ps.source && ps.source.kind !== 'live' && ps.status !== 'error') player.toggle();
-    else playLive();
+    if (ps.source && ps.source.kind !== 'live' && ps.status !== 'error') return player.toggle();
+    // "listen" (nothing playing yet), not pause or resume
+    const starting = !ps.source || ps.status === 'error';
+    playLive();
+    // the live set plays over the music page, where what's on shows with its album art (never a hidden page)
+    if (starting && live.get().isLive && location.pathname !== '/music' && paletteLinks().some((p) => p.href === '/music')) navigate('/music');
   });
   progress.addEventListener('click', (e) => {
     const r = progress.querySelector('.bar')!.getBoundingClientRect();
