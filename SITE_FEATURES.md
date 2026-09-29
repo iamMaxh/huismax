@@ -149,7 +149,7 @@ Verified against the production code and the live site on **2026-09-29**.
 ## 5. DJ: huismax dj channel (`/dj`)
 
 **Console (top of the page):**
-- A large audio visualizer.
+- A large audio visualizer. It stays still until something plays.
 - A label that reads "now playing" when live, "latest · 00N" for the newest session, or "archive".
 - The session title.
 - An **on air** clock that counts time since the live set started. It shows `--:--:--` when not live.
@@ -182,9 +182,16 @@ Verified against the production code and the live site on **2026-09-29**.
 - When a set ends, the player stops and the page goes back to the archive.
 - If the stream fails: "could not reach the stream".
 
+**Requests for the next live set · LIVE:**
+- Under the console, **requests** asks "What should I play next live?". Visitors enter a track, an artist or a vibe (up to 200 characters) and, optionally, a name (up to 40), then press **request →**.
+- A request doesn't appear straight away. Max reads them and publishes the ones he picks. Those show under **on the list**, newest first (up to 20), with the name if one was given.
+- A sent request can't be edited or withdrawn by the visitor. Nothing guarantees Max will play it, and he doesn't answer requests. To get an answer, use `/reply`.
+- Limits: one request a minute and five a day per visitor. When many arrive at once the form asks people to try again later.
+- Messages visitors may see: "tell me what to play first", "200 characters max", "one request a minute, please", "that's 5 today. try again tomorrow", "too many requests right now. try again later".
+
 **Not available:**
 - No schedule or calendar of upcoming sets, and no notifications or reminders.
-- No chat or requests during sets, and no booking form.
+- No chat during sets, and no booking form.
 - Live sets are not added to the archive automatically. Max adds sessions himself.
 
 ---
@@ -295,7 +302,8 @@ Use `/reply` for everything contact-related: collaborations, DJ bookings, photog
 | DJ "on air --:--:--" clock | Runs only while Max is live. |
 | "listen live" / LIVE badge / listener count | Appear only while Max is streaming. |
 | Small waveform bars beside each DJ session | Decorative, not the real audio waveform. |
-| DJ console and audio bar visualizers | Real only while audio plays and the audio host allows analysis. Otherwise a simulated animation. |
+| DJ console and audio bar visualizers | Still until something plays. While audio plays they follow the real sound when the audio host allows analysis, otherwise a simulated animation. |
+| A DJ request that doesn't show on "on the list" | Requests appear only once Max publishes them. |
 | Disabled ▶ on a DJ session | That session has no audio attached. |
 | Spotify track cards | Links to Spotify, not an in-site player. |
 | "in rotation" / "featured" music sections | Supported but currently empty, so hidden. |
@@ -331,7 +339,7 @@ Use `/reply` for everything contact-related: collaborations, DJ bookings, photog
 | Feature | URL |
 |---|---|
 | Home / Live Chat button | https://huismax.com/ |
-| DJ channel (live and archive) | https://huismax.com/dj |
+| DJ channel (live, archive and requests) | https://huismax.com/dj |
 | Music and Spotify | https://huismax.com/music |
 | Photography | https://huismax.com/photographer |
 | Hiking | https://huismax.com/hiking |

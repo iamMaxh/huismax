@@ -3,10 +3,12 @@ import { live, poll as pollLive, type LiveStatus } from '../lib/live';
 import { player } from '../lib/player';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
+import { initRequests } from './dj-requests';
 
 type Mix = { id: string; no: string; title: string; audioUrl: string };
 
 export const initDJ: PageInit = (main, scope) => {
+  initRequests(main, scope);
   const mixes = readJSON<Mix[]>('mix-data', main) ?? [];
   const title = $('[data-dj-title]', main)!;
   const clockEl = $('[data-dj-clock]', main)!;

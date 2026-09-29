@@ -163,3 +163,20 @@
   /* one column on a phone: the live mark sits under the title instead of opening a second column (crumb beside title) */
   .dj-head .live-mark { grid-column: 1; grid-row: auto; }
 }
+
+/* ——— requests: what to play next live (the form shares /reply's styles) ——— */
+.requests { padding-top: clamp(56px, 8vw, 96px); }
+.requests-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px clamp(32px, 6vw, 88px); padding-top: 22px; }
+.reply-form.requests-form { border-top: 0; padding-top: 0; align-content: start; }
+.requests-ask { font: 500 clamp(26px, 3.4vw, 40px)/1.05 var(--font-sans); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.requests-picked { min-width: 0; }
+.requests-picked .label { font-weight: 400; }
+.requests-picked .label .dim { margin-left: 6px; }
+.requests-list { display: grid; border-top: 1px solid var(--line); }
+.requests-list li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.requests-track { min-width: 0; overflow-wrap: anywhere; }
+.requests-list .mono { font-size: var(--t-xs); }
+.requests-empty { padding: 12px 0; border-top: 1px solid var(--line); }
+@media (max-width: 760px) {
+  .requests-cols { grid-template-columns: 1fr; }
+}

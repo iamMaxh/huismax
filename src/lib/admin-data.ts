@@ -7,7 +7,7 @@ export type AdminData = {
   settings: cms.Settings;
   collections: Record<cms.CollectionName, cms.Item[]>;
   /** field definitions, so the admin can build its forms from the same rules the server validates with */
-  defs: Record<cms.CollectionName, { flag: 'visible' | 'published'; order: 'sort' | 'number'; fields: cms.Field[] }>;
+  defs: Record<cms.CollectionName, { flag: 'visible' | 'published'; order: cms.CollectionDef['order']; fields: cms.Field[] }>;
   messages: Message[];
   /** R2 bound (photo uploads possible) */
   media: boolean;

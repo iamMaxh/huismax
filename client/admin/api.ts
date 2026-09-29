@@ -2,9 +2,9 @@
 
 export type FieldType = 'text' | 'long' | 'url' | 'link' | 'date' | 'int' | 'real' | 'enum';
 export type Field = { name: string; type: FieldType; label: string; max?: number; required?: boolean; options?: readonly string[]; min?: number; hint?: string };
-export type Def = { flag: 'visible' | 'published'; order: 'sort' | 'number'; fields: Field[] };
+export type Def = { flag: 'visible' | 'published'; order: 'sort' | 'number' | 'newest'; fields: Field[] };
 export type Item = { id: string; [k: string]: string | number };
-export type CollectionName = 'identities' | 'projects' | 'music' | 'now' | 'photos' | 'dj' | 'links';
+export type CollectionName = 'identities' | 'projects' | 'music' | 'now' | 'photos' | 'dj' | 'requests' | 'links';
 
 export type PageKey = 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply';
 export type Settings = {

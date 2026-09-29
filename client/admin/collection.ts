@@ -48,7 +48,9 @@ type Row = {
   form: { el: HTMLFormElement; ctl: Controls; state: Label; extra: Extra | null } | null;
 };
 
-const byNumber = (a: Item, b: Item) => Number(b.number) - Number(a.number) || String(b.created_at).localeCompare(String(a.created_at));
+/** Lists not ordered by hand: highest number first (dj sessions), then newest first (requests have no number). */
+const byNumber = (a: Item, b: Item) =>
+  (Number(b.number) || 0) - (Number(a.number) || 0) || String(b.created_at).localeCompare(String(a.created_at));
 
 export class Collection {
   items: Item[] = [];

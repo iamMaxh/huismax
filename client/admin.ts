@@ -74,6 +74,12 @@ function cms(main: HTMLElement, data: AdminData) {
     extra: coverEditor(data.media),
     empty: 'no sessions yet. the page keeps its empty state until one is published.',
   });
+  coll('requests', {
+    noun: 'request',
+    title: (it) => s(it.request),
+    sub: (it) => join(it.name && `from ${s(it.name)}`, s(it.created_at).slice(0, 10)),
+    empty: 'no requests yet. they come in from the form on /dj.',
+  });
   music(main, data);
 
   for (const el of $$('[data-photos]', main)) {

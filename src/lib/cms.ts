@@ -33,8 +33,8 @@ export type CollectionDef = {
   /** default for new items: drafts for photos and sessions, live for small lists */
   flagDefault: 0 | 1;
   fields: Field[];
-  /** public/admin order; 'sort' = manual (drag to reorder) */
-  order: 'sort' | 'number';
+  /** public/admin order; 'sort' = manual (drag to reorder), 'newest' = latest first */
+  order: 'sort' | 'number' | 'newest';
   /** enum columns a list can be narrowed by (?album=hiking) */
   filters?: string[];
 };
@@ -116,6 +116,14 @@ export const COLLECTIONS = {
       t('tracklist', 'tracklist', 4000, { type: 'long', hint: 'one track per line' }),
     ],
   },
+  /** what visitors want to hear next live (the form on /dj); hidden until published */
+  requests: {
+    table: 'dj_requests',
+    flag: 'published',
+    flagDefault: 0,
+    order: 'newest',
+    fields: [t('request', 'request', 200, { required: true }), t('name', 'from', 40)],
+  },
   links: {
     table: 'links',
     flag: 'visible',
@@ -189,7 +197,8 @@ export function validate(def: CollectionDef, input: Record<string, unknown>, ful
   return out;
 }
 
-const orderBy = (def: CollectionDef) => (def.order === 'number' ? 'number DESC, created_at DESC' : 'sort_order ASC, created_at ASC');
+const ORDER_BY = { number: 'number DESC, created_at DESC', newest: 'created_at DESC', sort: 'sort_order ASC, created_at ASC' } as const;
+const orderBy = (def: CollectionDef) => ORDER_BY[def.order];
 
 export async function list(env: Env, name: CollectionName, opts: { onlyPublic?: boolean; filter?: Record<string, string> } = {}): Promise<Item[]> {
   const def: CollectionDef = COLLECTIONS[name];
