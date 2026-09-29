@@ -229,8 +229,8 @@ export function startChat() {
     dialog.toggleAttribute('data-busy', on);
     // screen readers: no announcement per token, one when the answer settles
     logEl.setAttribute('aria-busy', String(on));
-    // focus follows the button that replaced the one in use
-    if (move) (on ? stop : input).focus({ preventScroll: true });
+    // focus follows the button that replaced the one in use (Send, not the field, on touch: no surprise keyboard)
+    if (move) (on ? stop : matchMedia('(pointer: fine)').matches ? input : send).focus({ preventScroll: true });
   };
 
   async function ask(raw: string) {
