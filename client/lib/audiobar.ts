@@ -83,8 +83,7 @@ export function startAudioBar(navigate: (href: string) => void) {
   const draw = (t: number) => {
     ctx.clearRect(0, 0, size.w, size.h);
     const ps = player.state();
-    const energy = ps.status === 'playing' ? 1 : live.get().isLive ? 0.35 : 0.06;
-    readSpectrum(data, t, energy);
+    readSpectrum(data, t, ps.status === 'playing' ? 1 : 0);
     ctx.globalAlpha = 0.9;
     const n = data.length, bw = size.w / n;
     ctx.fillStyle = color;

@@ -142,7 +142,7 @@ export const initDJ: PageInit = (main, scope) => {
   const draw = (t: number) => {
     const s = live.get();
     const playing = player.state().status === 'playing';
-    readSpectrum(data, t, playing ? 1 : s.isLive ? 0.55 : 0.08);
+    readSpectrum(data, t, playing ? 1 : 0);
     const { w, h } = size;
     ctx.clearRect(0, 0, w, h);
     const n = data.length, bw = w / n;

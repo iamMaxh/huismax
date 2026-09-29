@@ -1,8 +1,8 @@
 import { player } from './player';
 
 /**
- * Stand-in spectrum used whenever real audio isn't available: a slow, breathing shape whose
- * energy reflects the channel state (off air ≈ flat, live ≈ alive).
+ * Stand-in spectrum used while something plays but its audio can't be read (a stream without CORS):
+ * a slow, breathing shape. Energy 0 is flat: nothing moves until something plays.
  */
 export function synthSpectrum(out: Uint8Array, t: number, energy: number) {
   const n = out.length;
