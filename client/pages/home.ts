@@ -74,30 +74,33 @@ export const initHome: PageInit = (main, scope) => {
 };
 
 /**
- * Under the Spotify card: the line being sung, like a subtitle, while the song plays and has synced lyrics.
- * Anything else (paused, unsynced, none found, an error) and it's simply not there.
+ * Under the Spotify card, and under the live card while the channel is on air (5 s later, with the stream): the line
+ * being sung, like a subtitle, while the song plays and has synced lyrics. Anything else (paused, unsynced, none
+ * found, an error) and it's simply not there. CSS shows whichever card fits the moment.
  */
 function sungLine(main: HTMLElement, scope: Parameters<PageInit>[1]) {
-  const el = $('[data-listening-lyric]', main);
-  if (!el) return;
-  const text = $('[data-listening-lyric-text]', el)!;
+  const els = $$('[data-listening-lyric]', main);
+  if (!els.length) return;
   let lines: Line[] = [];
   scope.add(
     lyrics.subscribe((s) => {
       lines = s.status === 'synced' && !s.paused ? s.lines : [];
-      if (!lines.length) el.hidden = true;
+      if (!lines.length) for (const el of els) el.hidden = true;
     }),
   );
   scope.add(
     lyrics.onLine((i) => {
       const l = lines[i];
-      el.hidden = !l;
-      if (!l) return;
-      const words = l.text || '♪';
-      el.classList.toggle('is-break', !l.text);
-      if (text.textContent === words) return;
-      text.textContent = words;
-      if (!reducedMotion()) text.animate?.([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'ease-out' });
+      for (const el of els) {
+        el.hidden = !l;
+        if (!l) continue;
+        const words = l.text || '♪';
+        el.classList.toggle('is-break', !l.text);
+        const text = $('[data-listening-lyric-text]', el)!;
+        if (text.textContent === words) continue;
+        text.textContent = words;
+        if (!reducedMotion()) text.animate?.([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'ease-out' });
+      }
     }),
   );
 }

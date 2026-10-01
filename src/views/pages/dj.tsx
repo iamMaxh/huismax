@@ -22,7 +22,14 @@ export const DJ = ({ live, sessions, requests, ready, intro }: { live: LiveStatu
       </PageHead>
 
       <section class="console" aria-label="player" data-prox>
-        <canvas class="console-viz" data-dj-viz aria-hidden="true" />
+        <div class="console-stage">
+          <canvas class="console-viz" data-dj-viz aria-hidden="true" />
+          {/* on air: the line being sung on the stream, as subtitles over the spectrum (client/pages/dj-lyrics.ts) */}
+          <p class="console-lyrics" data-console-lyrics aria-hidden="true" hidden>
+            <span class="console-lyrics-now" data-console-lyrics-now />
+            <span class="console-lyrics-next" data-console-lyrics-next />
+          </p>
+        </div>
         <div class="console-bar">
           <div class="console-cell">
             <span class="label mono" data-dj-kicker>{live.isLive ? 'now playing' : latest ? `latest · ${no(latest.number)}` : 'archive'}</span>

@@ -126,6 +126,7 @@ Verified against the production code and the live site on **2026-09-29**.
   - **Status line:** a breathing dot and Max's personal status, which he sets by hand. Examples: "building", "locked in", "touching grass", "afk", or any custom text.
   - **Spotify card:** album art, a state label ("now playing", "paused" or "last played · 2 h ago"), the track, the artist, and a progress bar while playing or paused. Clicking it opens the track on Spotify.
   - While a song plays and has synced lyrics, the line being sung shows under the card, like a subtitle ("> …"). It disappears when the song is paused or has no synced lyrics. The full lyrics are on `/music`.
+  - While Max is live, the same line shows under the "huismax dj channel" card instead, timed to the stream (5 seconds later).
   - A **"spotify profile ↗"** link.
   - A manual "♪ title — artist" line appears when Max sets one and Spotify isn't showing a track.
   - While Max is live, the block shows **● LIVE** and a "huismax dj channel" card: the DJ spectrum stands where the album art was, and the card opens `/dj`. It returns when the set ends.
@@ -180,6 +181,7 @@ Verified against the production code and the live site on **2026-09-29**.
   - The palette offers **listen live**.
 - Audio never starts by itself: visitors press **listen live** (browsers require a click). It keeps playing while they browse other pages.
 - Volume is remembered on the visitor's device. On iPhone, the volume control appears once the stream is playing; otherwise use the phone's buttons.
+- **Lyrics while live · LIVE:** when the song Max plays has synced lyrics, the line being sung shows over the spectrum like a subtitle, with the next line under it. They're timed to the stream (5 seconds after Max's Spotify), so they match what listeners hear. They show only while the song plays; when it's paused or has no synced lyrics, they're simply not there.
 - When a set ends, the player stops and the page goes back to the archive.
 - If the stream fails: "could not reach the stream".
 
@@ -209,6 +211,7 @@ Verified against the production code and the live site on **2026-09-29**.
   - **+ all lines** opens the whole song (the device remembers the choice). While scrolling it by hand, it stops following for a few seconds. **− fewer lines** closes it again.
   - The header says what's there: "synced", "not synced" (words without timing, shown as plain text), "instrumental", "none found", or "unavailable right now" (LRCLIB didn't answer; the site tries again later). While paused it adds "paused" and the lyrics stop on the current line.
   - Timing follows Spotify's own progress, so a line can be up to a second off, and after Max skips or seeks it can take up to about 20 seconds to catch up.
+  - **While Max is live**, the lyrics follow the stream instead: the radio reaches listeners about 5 seconds after Max hears it, so every line comes 5 seconds later. The header then says "synced to the live stream", and the lines run a few seconds behind the progress bar on purpose. Paused, they stop where the song stopped.
   - Lyrics only appear for the song Max is playing, never for "last played" songs. Some songs have no lyrics on LRCLIB, or only an unsynced version.
 - **recently played:** up to 8 recent tracks with duplicates removed, each with "x min/h/d ago".
 - **on repeat:** Max's top 5 tracks from roughly the last 4 weeks.

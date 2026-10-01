@@ -12,6 +12,24 @@
 }
 .dj-page[data-live='on'] .console { border-color: color-mix(in srgb, var(--live) 45%, var(--line)); }
 .console-viz { width: 100%; height: clamp(180px, 28vh, 300px); }
+
+/* on air: the song's lyrics as subtitles over the spectrum (client/pages/dj-lyrics.ts) */
+.console-stage { position: relative; }
+.console-lyrics {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: grid;
+  gap: 4px;
+  padding: 40px 24px 16px;
+  background: linear-gradient(to top, var(--bg-2) 45%, transparent);
+  pointer-events: none;
+}
+.console-lyrics-now { min-width: 0; font: 450 clamp(18px, 2vw, 26px) / 1.2 var(--font-sans); letter-spacing: -0.02em; color: var(--fg); overflow-wrap: anywhere; }
+.console-lyrics-now::before { content: '>'; display: inline-block; width: calc(var(--t-xs) + 10px); font: 400 var(--t-xs) / 1 var(--font-mono); color: var(--live); vertical-align: 0.2em; }
+.console-lyrics-now::after { content: '_'; animation: blink 1.1s steps(1) infinite; }
+.console-lyrics-next { padding-left: calc(var(--t-xs) + 10px); font-size: var(--t-sm); color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.console-lyrics-next:empty { display: none; }
+.console-lyrics.is-break .console-lyrics-now { font: 400 var(--t-md) / 1.2 var(--font-mono); color: var(--fg-3); }
 .console-bar {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr auto;
