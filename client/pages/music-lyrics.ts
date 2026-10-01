@@ -61,7 +61,9 @@ export function musicLyrics(np: HTMLElement, scope: Scope) {
     box.dataset.state = s.status;
     box.toggleAttribute('data-paused', s.paused);
     const words = s.status === 'synced' || s.status === 'plain';
-    note.textContent = NOTES[s.status] + (words && s.paused ? ' · paused' : '');
+    // on air the lines follow the stream, a few seconds behind the progress bar above: say so
+    const synced = s.status === 'synced' && s.onAir && !s.paused ? 'synced to the live stream' : NOTES[s.status];
+    note.textContent = synced + (words && s.paused ? ' · paused' : '');
     view.hidden = toggle.hidden = src.hidden = !words;
     if (s.lines === shown) return;
     shown = s.lines;

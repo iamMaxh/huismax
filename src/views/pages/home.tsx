@@ -113,6 +113,10 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
                   <span class="listening-name">huismax dj channel</span>
                   <span class="listening-artist" data-live-session>{live.sessionTitle ?? ''}</span>
                 </span>
+                {/* the line being sung on the stream (client/pages/home.ts), as under the Spotify card */}
+                <span class="listening-lyric" data-listening-lyric aria-hidden="true" hidden>
+                  <span class="listening-lyric-text" data-listening-lyric-text />
+                </span>
               </a>
             )}
           </div>

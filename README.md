@@ -103,6 +103,10 @@ Synced lyrics come from [LRCLIB](https://lrclib.net), which is free and needs no
   1. `/api/spotify/now` carries `ageMs` (how old the edge-cached answer is). The page adds it to Spotify's `progress_ms` and to the time since the poll arrived.
   2. The current line is the last one whose start ≤ that + 250 ms.
   3. The page sleeps until the next line starts. While synced lyrics show, it polls every 10 s instead of 20 s, so a seek or skip is caught sooner.
+- **While the DJ channel is live**, the lyrics follow the stream, which reaches listeners about 5 s after Max's Spotify (BUTT → Icecast → the player's buffer). The lines run `LIVE_DELAY` (5000 ms, in `client/lib/lyrics.ts`) behind while the song plays. Paused, there is no delay: the stream has caught up by then. Change that one number if the stream's latency changes.
+  - /dj shows them as subtitles over the spectrum (`client/pages/dj-lyrics.ts`), hooked up only while live.
+  - The homepage live card carries the same line.
+  - /music says "synced to the live stream".
 
 ## Reply
 
