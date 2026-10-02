@@ -36,6 +36,8 @@ export const DJ = ({ live, sessions, requests, ready, intro }: { live: LiveStatu
             <strong class="console-title" data-dj-title>
               {live.isLive ? live.sessionTitle ?? 'live' : latest ? latest.title : 'first transmission soon'}
             </strong>
+            {/* on air: the song playing on Max's Spotify, under its title (client/pages/dj.ts) */}
+            <span class="console-artist" data-dj-artist hidden />
           </div>
           <div class="console-cell console-clock-cell">
             <span class="label mono">on air</span>

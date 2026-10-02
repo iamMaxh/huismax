@@ -111,7 +111,8 @@ async function load(id: string, paused: boolean) {
   set({ status: 'loading', id, lines: [], paused });
   let answer: Answer;
   try {
-    const res = await fetch(`/api/spotify/lyrics?id=${encodeURIComponent(id)}`);
+    // v: the lookup's version (LYRICS_VERSION in src/index.tsx), so a browser's copy from an older one isn't reused
+    const res = await fetch(`/api/spotify/lyrics?id=${encodeURIComponent(id)}&v=2`);
     if (res.status === 409) {
       // the site has moved on to another song (or not caught up yet): refresh Spotify, then ask again, a few times
       if (state.id === id && stale++ < 3) {

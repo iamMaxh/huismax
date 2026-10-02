@@ -2,7 +2,7 @@ import { $, clock, cssVar, fitCanvas, reducedMotion, Scope } from './dom';
 import { live } from './live';
 import { player, type PlayerState } from './player';
 import { readSpectrum } from './viz';
-import { spotify } from './spotify';
+import { playingNow, spotify } from './spotify';
 import { paintListening } from './listening';
 import { paletteLinks } from './nav';
 
@@ -34,7 +34,9 @@ export function startAudioBar(navigate: (href: string) => void) {
     const ls = live.get();
     const hasSource = !!ps.source;
     bar.dataset.state = hasSource ? ps.status : ls.isLive ? 'live' : 'idle';
-    title.textContent = ps.message ?? ps.source?.title ?? (ls.isLive ? ls.sessionTitle ?? '' : '');
+    // on air (listening, or not yet): the song playing on Spotify when there is one
+    const song = (ps.source ? ps.source.kind === 'live' : ls.isLive) ? playingNow() : null;
+    title.textContent = ps.message ?? (song ? `♪ ${song.name} — ${song.artists}` : ps.source?.title ?? (ls.isLive ? ls.sessionTitle ?? '' : ''));
     btnLabel.textContent = ps.status === 'playing' ? 'pause' : ps.status === 'loading' ? 'loading' : hasSource && ps.status === 'paused' ? 'resume' : 'listen';
     btn.setAttribute('aria-pressed', String(ps.status === 'playing'));
     btn.hidden = !hasSource && !ls.isLive;
@@ -47,7 +49,7 @@ export function startAudioBar(navigate: (href: string) => void) {
   };
 
   player.subscribe(paint);
-  spotify.subscribe((n) => paintListening(bar, n));
+  spotify.subscribe((n) => (paintListening(bar, n), paint()));
   live.subscribe(() => paint());
 
   btn.addEventListener('click', () => {

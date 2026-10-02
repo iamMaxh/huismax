@@ -54,6 +54,9 @@ export const spotify = {
   },
 };
 
+/** The song playing on Max's Spotify right now (not paused: on air, a paused one isn't what's on), or null. */
+export const playingNow = (n: Now = spotify.get()) => (n.state === 'playing' ? n.track : null);
+
 let timer = 0;
 async function poll() {
   clearTimeout(timer);
