@@ -247,7 +247,7 @@ test('/api/spotify/lyrics: release details and special characters; searches unti
 });
 
 test('/api/spotify/lyrics: none found, instrumental, and LRCLIB failing are answers too (kept for a day, a week, two minutes)', async () => {
-  const ttl = (id: string) => Math.round((cacheStore.get(`https://huismax.com/api/spotify/lyrics?id=${id}`)!.until - Date.now()) / 1000);
+  const ttl = (id: string) => Math.round((cacheStore.get(`https://huismax.com/api/spotify/lyrics?id=${id}&v=2`)!.until - Date.now()) / 1000);
 
   reset();
   playing = track();
@@ -276,4 +276,23 @@ test('/api/spotify/lyrics: none found, instrumental, and LRCLIB failing are answ
   reset();
   lrclib = (url) => new Promise((_ok, fail) => setTimeout(() => fail(new Error(`timed out ${url.search}`)), 50));
   assert.equal((await (await get(`/api/spotify/lyrics?id=${ID}`)).json()).state, 'error');
+});
+
+test('/api/spotify/lyrics: words without timing don\'t stop the search; the timed version of this recording wins', async () => {
+  // Slow Jamz: the first search finds only other recordings (unsynced for this one); the free-text search has it timed
+  reset();
+  const id = '3A4cpTBPaIQdtPFb5JxtaX';
+  playing = track({ id, name: 'Slow Jamz', artists: [{ name: 'Twista' }, { name: 'Kanye West' }, { name: 'Jamie Foxx' }], duration_ms: 316_053 });
+  const other = (duration: number) => hit({ trackName: 'Slow Jamz', artistName: 'Twista', duration, syncedLyrics: '[00:01.00] another cut' });
+  lrclib = (url) => json(url.searchParams.has('q') ? [hit({ trackName: 'Slow Jamz', artistName: 'TWISTA', duration: 316, syncedLyrics: '[00:10.00] the right one' })] : [other(213), other(264), other(320)]);
+  const body = await (await get(`/api/spotify/lyrics?id=${id}`)).json();
+  assert.equal(body.state, 'synced');
+  assert.equal(body.lines.find((l: { text: string }) => l.text).text, 'the right one');
+  assert.equal(lrclibCalls().length, 2);
+
+  // nothing timed anywhere: the words, unsynced, once every search is done
+  reset();
+  lrclib = () => json([other(213)]);
+  assert.equal((await (await get(`/api/spotify/lyrics?id=${id}`)).json()).state, 'plain');
+  assert.equal(lrclibCalls().length, 2);
 });

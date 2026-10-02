@@ -115,6 +115,7 @@
 .console-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 32px; }
 .console-bar .console-cell:first-child { flex: 1 1 280px; min-width: 0; }
 .console-title { overflow-wrap: anywhere; }
+.console-artist { display: block; margin-top: 6px; color: var(--fg-2); font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* intro spans the head; the live mark keeps its place beside the title */
 .dj-head .page-intro { grid-column: 1 / -1; }

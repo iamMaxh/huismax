@@ -141,7 +141,10 @@ async function search(env: Env, params: Record<string, string>): Promise<Hit[]> 
 
 /**
  * Title + lead artist first; then the bare title ("- Remastered", "feat." dropped); then a free-text search.
- * 'none' only when every search answered; if LRCLIB failed along the way it's 'error' (tried again later).
+ * Stops at the first synced lyrics of this recording. Words without timing (or "instrumental") don't stop it: the
+ * timed version often turns up in a later search (another spelling of the artist, say), so those are only the
+ * answer once every search is done. 'none' only when every search answered; if LRCLIB failed along the way and
+ * nothing turned up it's 'error' (tried again later).
  */
 export async function findLyrics(env: Env, q: Query): Promise<Lyrics> {
   const name = q.name.trim(), bare = baseTitle(name);
@@ -149,14 +152,17 @@ export async function findLyrics(env: Env, q: Query): Promise<Lyrics> {
   if (bare !== name) tries.push({ track_name: bare, artist_name: q.artist });
   tries.push({ q: `${bare} ${q.artist}`.trim() });
   let failed = false;
+  const seen: Hit[] = [];
   for (const params of tries) {
     try {
-      const found = pick(await search(env, params), q);
-      if (found) return found;
+      const hits = await search(env, params);
+      seen.push(...hits);
+      const found = pick(hits, q);
+      if (found?.state === 'synced') return found;
     } catch (e) {
       failed = true;
       console.error('lyrics:', (e as Error).message);
     }
   }
-  return { state: failed ? 'error' : 'none', lines: [] };
+  return pick(seen, q) ?? { state: failed ? 'error' : 'none', lines: [] };
 }

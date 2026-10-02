@@ -3,6 +3,7 @@ import { tickListening } from '../lib/listening';
 import { live } from '../lib/live';
 import { lyrics, type Line } from '../lib/lyrics';
 import { player } from '../lib/player';
+import { playingNow, spotify } from '../lib/spotify';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
 
@@ -71,6 +72,13 @@ export const initHome: PageInit = (main, scope) => {
   const liveViz = $<HTMLCanvasElement>('[data-live-viz]', main);
   if (liveViz) spectrum(liveViz, scope);
   sungLine(main, scope);
+  // the live card: the song playing on Spotify, under the channel (empty, CSS hides the line)
+  scope.add(
+    spotify.subscribe((n) => {
+      const t = playingNow(n);
+      for (const el of $$('[data-live-song]', main)) el.textContent = t ? `♪ ${t.name} — ${t.artists}` : '';
+    }) as () => void,
+  );
 };
 
 /**

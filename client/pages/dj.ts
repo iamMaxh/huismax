@@ -1,6 +1,7 @@
 import { $, $$, clock, cssVar, fitCanvas, readJSON, reducedMotion } from '../lib/dom';
 import { live, poll as pollLive, type LiveStatus } from '../lib/live';
 import { player } from '../lib/player';
+import { playingNow, spotify } from '../lib/spotify';
 import { readSpectrum } from '../lib/viz';
 import type { PageInit } from '../main';
 import { initRequests } from './dj-requests';
@@ -15,6 +16,7 @@ export const initDJ: PageInit = (main, scope) => {
   const title = $('[data-dj-title]', main)!;
   const clockEl = $('[data-dj-clock]', main)!;
   const kicker = $('[data-dj-kicker]', main)!;
+  const artist = $('[data-dj-artist]', main)!;
   const latestBtn = $<HTMLButtonElement>('.console-latest', main);
   // the session the console offers (newest playable one, chosen on the server), else the newest one
   const latest = mixes.find((m) => m.id === latestBtn?.dataset.playMix) ?? mixes[0];
@@ -75,8 +77,12 @@ export const initDJ: PageInit = (main, scope) => {
   /* ——— live state ——— */
   let startedAt: number | null = null;
   const paint = (s: LiveStatus) => {
-    title.textContent = s.isLive ? s.sessionTitle ?? 'live' : latest ? latest.title : 'first transmission soon';
-    kicker.textContent = s.isLive ? 'now playing' : latest ? `latest · ${latest.no}` : 'archive';
+    // on air: the song playing on Spotify (the set's title, if there is one, moves up beside "now playing")
+    const song = s.isLive ? playingNow() : null;
+    title.textContent = song ? song.name : s.isLive ? s.sessionTitle ?? 'live' : latest ? latest.title : 'first transmission soon';
+    artist.textContent = song?.artists ?? '';
+    artist.hidden = !song;
+    kicker.textContent = s.isLive ? (song && s.sessionTitle ? `now playing · ${s.sessionTitle}` : 'now playing') : latest ? `latest · ${latest.no}` : 'archive';
     if (latestBtn) latestBtn.hidden = s.isLive;
     startedAt = s.isLive && s.startedAt ? Date.parse(s.startedAt) : null;
     tickClock();
@@ -90,6 +96,7 @@ export const initDJ: PageInit = (main, scope) => {
     clockEl.textContent = (h ? '' : '0:') + clock(sec).padStart(h ? 7 : 5, '0');
   };
   scope.add(live.subscribe(paint) as () => void);
+  scope.add(spotify.subscribe(() => paint(live.get())) as () => void);
   const clockId = setInterval(tickClock, 1000);
   scope.add(() => clearInterval(clockId));
 

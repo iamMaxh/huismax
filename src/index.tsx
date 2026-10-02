@@ -596,7 +596,10 @@ app.get('/api/spotify/recent', async (c) => fresh(await edgeData(c, '/api/spotif
  * nothing was found, two minutes when LRCLIB failed) and in the browser.
  */
 const TRACK_ID = /^[A-Za-z0-9]{22}$/;
-const LYRICS_TTL: Record<Lyrics['state'], number> = { synced: 604800, plain: 604800, instrumental: 604800, none: 86400, error: 120 };
+// a day for words without timing: a timed version may turn up on LRCLIB later
+const LYRICS_TTL: Record<Lyrics['state'], number> = { synced: 604800, plain: 86400, instrumental: 604800, none: 86400, error: 120 };
+/** Bumped when the lookup gets better, so answers kept at the edge (and in browsers: the page asks with it) are asked again. */
+const LYRICS_VERSION = 2;
 const LYRICS_BROWSER: Record<Lyrics['state'], string> = {
   synced: 'public, max-age=86400',
   plain: 'public, max-age=86400',
@@ -608,7 +611,7 @@ const LYRICS_BROWSER: Record<Lyrics['state'], string> = {
 app.get('/api/spotify/lyrics', async (c) => {
   const id = c.req.query('id') ?? '';
   if (!TRACK_ID.test(id)) return c.json({ error: 'bad id' }, 400);
-  const lyrics = await edgeData<Lyrics | { state: 'stale'; lines: [] }>(c, `/api/spotify/lyrics?id=${id}`, (d) => (d.state === 'stale' ? 0 : LYRICS_TTL[d.state]), async () => {
+  const lyrics = await edgeData<Lyrics | { state: 'stale'; lines: [] }>(c, `/api/spotify/lyrics?id=${id}&v=${LYRICS_VERSION}`, (d) => (d.state === 'stale' ? 0 : LYRICS_TTL[d.state]), async () => {
     const t = (await cachedNow(c)).track;
     if (!t || t.id !== id) return { state: 'stale', lines: [] };
     return findLyrics(c.env, { name: t.name, artist: t.leadArtist || t.artists, album: t.album, durationMs: t.durationMs });
