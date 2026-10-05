@@ -1,8 +1,9 @@
 import type { Env } from './env';
+import { combine, HOURS, mergeHistory, METRICS } from './homelab-api';
 import type { Container, ContainerState, Disk, Health, History, Iface, Overview, Point, Range, Server, ServiceStatus, SystemInfo, Usage } from './homelab-types';
 
 /**
- * /homelab's data. The worker asks the Monitoring API (MONITORING_API_URL, contract in MONITORING_API.md) and hands
+ * /homelab's data. The worker asks the Monitoring API (MONITORING_API_URL, see MONITORING_API.md) and hands
  * the pages its own cleaned-up version: only the fields in homelab-types.ts, numbers clamped, addresses masked.
  * Without MONITORING_API_URL it serves demo data of the same shape, through the same cleaning, marked `demo`.
  * The browser never sees the API's address or token. Answers are kept at the edge for a few seconds, and the last
@@ -17,6 +18,10 @@ const LAST_GOOD = 7 * 86400;
 const LOCAL = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/;
 
 export class MonitoringError extends Error {}
+
+/** When this isolate last found the API without the /v1 endpoints: asked again after V1_RECHECK. */
+let v1MissingAt = 0;
+const V1_RECHECK = 10 * 60_000;
 
 /* ——— where the data comes from ——— */
 
@@ -39,10 +44,12 @@ export function monitoringBase(env: Env, self: URL): string | null {
 function source(env: Env, self: URL): Source {
   const base = monitoringBase(env, self);
   if (!base) return { kind: 'demo', servers: async () => demoServers(Date.now()), history: async (id, range) => demoHistory(id, range, Date.now()) };
-  const get = async (path: string) => {
+  /** `optional`: a 404 is an answer (null), not an error */
+  const get = async (path: string, optional = false) => {
     const headers: Record<string, string> = { Accept: 'application/json', 'User-Agent': 'huismax.com/homelab' };
     if (env.MONITORING_API_TOKEN?.trim()) headers.Authorization = `Bearer ${env.MONITORING_API_TOKEN.trim()}`;
     const res = await fetch(base + path, { headers, signal: AbortSignal.timeout(TIMEOUT) });
+    if (optional && res.status === 404) return null;
     if (!res.ok) throw new MonitoringError(`api answered ${res.status} for ${path}`);
     const text = await res.text();
     if (text.length > MAX_BODY) throw new MonitoringError(`api answer too large for ${path}`);
@@ -52,10 +59,36 @@ function source(env: Env, self: URL): Source {
       throw new MonitoringError(`api answer is not JSON for ${path}`);
     }
   };
+  // The /v1 contract (MONITORING_API.md) when the API has it; until then its existing endpoints, put together by
+  // src/lib/homelab-api.ts. Whether /v1 is there is asked again every 10 minutes, not on every refresh.
+  const v1 = async (path: string) => {
+    if (Date.now() - v1MissingAt < V1_RECHECK) return null;
+    const answer = await get(path, true);
+    if (answer === null) v1MissingAt = Date.now();
+    return answer;
+  };
   return {
     kind: 'api',
-    servers: () => get('/v1/servers'),
-    history: (id, range) => get(`/v1/servers/${encodeURIComponent(id)}/history?range=${range}`),
+    servers: async () => {
+      const direct = await v1('/v1/servers');
+      if (direct !== null) return direct;
+      const [servers, storage, network, containers, systems] = await Promise.all([
+        get('/servers'),
+        get('/storage'),
+        get('/network'),
+        get('/containers'),
+        // names, OS and the like: the page does fine without them for a while
+        get('/system-info').catch(() => null),
+      ]);
+      return combine({ servers, storage, network, containers, systems });
+    },
+    history: async (id, range) => {
+      const direct = await v1(`/v1/servers/${encodeURIComponent(id)}/history?range=${range}`);
+      if (direct !== null) return direct;
+      const q = `?server=${encodeURIComponent(id)}&hours=${HOURS[range]}`;
+      const [cpu, memory, network_rx, network_tx] = await Promise.all(METRICS.map((m) => get(`/history/${m}${q}`)));
+      return mergeHistory({ cpu, memory, network_rx, network_tx });
+    },
   };
 }
 

@@ -1,23 +1,37 @@
 # Monitoring API (for /homelab)
 
-huismax.com/homelab reads one small HTTPS JSON API, which runs on your side (next to Prometheus, Netdata, a script, anything). The Worker calls it and passes the browser its own cleaned-up copy. Visitors never see the API's address or token.
+huismax.com/homelab reads the Huismax Monitoring API at **https://api.huismax.com**: FastAPI over Prometheus, reached through Cloudflare Tunnel. The Worker calls it and hands the browser its own cleaned-up copy. Visitors never see the API's address, any token, or a LAN address.
 
 ## Connecting it
 
-Cloudflare → Workers → huismax → Settings → Variables and Secrets:
+`MONITORING_API_URL` is set to `https://api.huismax.com` in `wrangler.jsonc` (vars). If the API ever needs a token, add the Secret `MONITORING_API_TOKEN` in Cloudflare → Workers → huismax → Settings → Variables and Secrets. It is sent as `Authorization: Bearer <token>`.
 
-| Name | Type | Value |
-|---|---|---|
-| `MONITORING_API_URL` | Text | Base URL, e.g. `https://monitor.example.com/api` (https only) |
-| `MONITORING_API_TOKEN` | Secret | Optional. Sent as `Authorization: Bearer <token>` |
+With no `MONITORING_API_URL` (local dev without one), /homelab shows demo data labelled "demo data". `/admin` → homelab shows which mode the site is in.
 
-Until `MONITORING_API_URL` is set, /homelab shows demo data labelled "demo data". Once it is set, the page shows only what the API reports. `/admin` → homelab shows which mode the site is in.
+## Which endpoints the site uses
 
-## Endpoints
+The site asks for **`/v1/servers`** first (the contract below). While FastAPI doesn't have it yet (a 404), the site reads the **existing endpoints** instead, and checks again for `/v1` every 10 minutes. Adding the `/v1` compatibility layer to FastAPI later needs no change on the website.
+
+### Today: the existing endpoints (`src/lib/homelab-api.ts`)
+
+| The site needs | It reads |
+|---|---|
+| Servers, CPU %, memory %, memory total, uptime, status (`online` → up) | `GET /servers` |
+| Disks per server (`/boot` and `/boot/efi` left out) | `GET /storage` → `filesystems[]` |
+| Network rate per server | `GET /network` → `network[]` |
+| Containers: name, state, CPU %, memory | `GET /containers` → `containers[]` |
+| Name, role, OS, kernel, CPU model, vCPUs, virtualization, Docker engine | `GET /system-info` → `systems[]` (optional) |
+| History: CPU, memory, network in / out | `GET /history/{cpu,memory,network_rx,network_tx}?server=<id>&hours=1\|24\|168` |
+
+- Containers have no server field. They go to the server whose system-info has a Docker engine (docker-server). If a container ever carries a `server` field, that wins.
+- A server without a system-info entry (monitoring, for now) shows its id as its name, and no OS line. Adding it to the inventory fills that in.
+- Never read: `instance`, `network.ipv4`, and the Prometheus labels in `/history` (they hold LAN addresses).
+
+### Later: the /v1 contract (the compatibility layer FastAPI can add)
 
 Two GET endpoints, both answering JSON with status 200. Each request gets 5 seconds to answer.
 
-### `GET {base}/v1/servers`
+#### `GET {base}/v1/servers`
 
 Everything about every server, right now. Asked at most every 15 s per Cloudflare location.
 
@@ -69,7 +83,7 @@ Everything about every server, right now. Asked at most every 15 s per Cloudflar
 - **`containers[].state`:** Docker's state: `running`, `paused`, `restarting`, `created`, `exited` or `dead`. `health` is `healthy`, `unhealthy` or `starting`.
 - **Accepted alternative names:** `used`/`total` for `usedBytes`/`totalBytes`; `rx`/`tx` for the `…BytesPerSec` fields; `usage` for `usagePercent`.
 
-### `GET {base}/v1/servers/{id}/history?range=1h|24h|7d`
+#### `GET {base}/v1/servers/{id}/history?range=1h|24h|7d`
 
 CPU, memory and network over time, for the charts. Ranges: `1h`, `24h` and `7d`. Suggested steps: 1 minute, 15 minutes and 1 hour (about 60–170 points). Asked at most every 1, 5 and 15 minutes respectively.
 
