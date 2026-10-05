@@ -1,7 +1,7 @@
 import type { Child } from 'hono/jsx';
 
 /** `intro` is the page's short line from /admin; nothing is rendered when it is empty. */
-export const PageHead = ({ crumb, title, intro, class: cls = '', children }: { crumb: string; title: Child; intro?: string; class?: string; children?: Child }) => (
+export const PageHead = ({ crumb, title, intro, class: cls = '', children }: { crumb: Child; title: Child; intro?: string; class?: string; children?: Child }) => (
   <header class={`page-head ${cls}`}>
     <p class="crumb mono">
       <a href="/">index</a> <span aria-hidden="true">/</span> {crumb}

@@ -7,7 +7,7 @@ import { AudioBar } from './components/audiobar';
 import { LiveMark } from './components/live';
 import { menuLinks, paletteLinks, SiteContext } from './components/site';
 
-export type PageKey = 'home' | 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply' | 'not-found';
+export type PageKey = 'home' | 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply' | 'homelab' | 'not-found';
 
 type Props = {
   page: PageKey;

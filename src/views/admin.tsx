@@ -64,7 +64,7 @@ const spotifyNotice: Record<string, string> = {
   cancelled: 'cancelled.',
 };
 
-const SECTIONS = ['status', 'home', 'music', 'photography', 'hiking', 'now', 'dj', 'reply', 'site'] as const;
+const SECTIONS = ['status', 'home', 'music', 'photography', 'hiking', 'now', 'dj', 'homelab', 'reply', 'site'] as const;
 type SectionKey = (typeof SECTIONS)[number];
 
 /** Public page each section edits, and the settings key that can hide it. */
@@ -76,6 +76,7 @@ const PAGE_OF: Partial<Record<SectionKey, { href: string; key?: PageKeyCms }>> =
   now: { href: '/now', key: 'now' },
   dj: { href: '/dj', key: 'dj' },
   reply: { href: '/reply', key: 'reply' },
+  homelab: { href: '/homelab', key: 'homelab' },
 };
 
 const PAGE_LABELS: Record<PageKeyCms, string> = {
@@ -86,6 +87,7 @@ const PAGE_LABELS: Record<PageKeyCms, string> = {
   music: 'music',
   now: 'now',
   reply: 'reply',
+  homelab: 'homelab',
 };
 
 const ext = { target: '_blank', rel: 'noopener noreferrer' };
@@ -189,7 +191,7 @@ const NoDb = ({ error }: { error: string | null }) => (
 /** JSON for a <script type="application/json">: `<` escaped so content can never close the tag. */
 const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
 
-export const Admin = ({ live, radio, presence, kv, spotify, data, dbError }: { live: LiveStatus; radio: RadioStatus; presence: Presence; kv: boolean; spotify: SpotifyInfo; data: AdminData | null; dbError: string | null }) => {
+export const Admin = ({ live, radio, presence, kv, spotify, monitoring, data, dbError }: { live: LiveStatus; radio: RadioStatus; presence: Presence; kv: boolean; spotify: SpotifyInfo; monitoring: { api: boolean; token: boolean }; data: AdminData | null; dbError: string | null }) => {
   const s = data?.settings;
   const unread = data ? data.messages.filter((m) => !m.read).length : 0;
   return (
@@ -384,6 +386,27 @@ export const Admin = ({ live, radio, presence, kv, spotify, data, dbError }: { l
           )}
         </Section>
 
+        <Section id="homelab" settings={s} note="servers and containers come from the Monitoring API; the sites below are yours to edit.">
+          <section class="panel" data-prox aria-label="monitoring api">
+            <div class="live-row">
+              <span class="panel-label mono">monitoring api</span>
+              <span class="mono">{monitoring.api ? '● connected' : '○ demo data'}</span>
+            </div>
+            <dl class="kv mono">
+              <dt class="dim">MONITORING_API_URL</dt>
+              <dd>{monitoring.api ? 'set' : 'not set'}</dd>
+              <dt class="dim">MONITORING_API_TOKEN</dt>
+              <dd>{monitoring.token ? 'set' : 'not set (optional)'}</dd>
+            </dl>
+            <p class="mono dim">
+              {monitoring.api
+                ? 'the page shows what the API reports. if it stops answering, the last good data is shown, marked stale.'
+                : 'until MONITORING_API_URL is set (Cloudflare → Workers → huismax → Settings → Variables and Secrets), /homelab shows demo data, labelled as such. the API it expects is in MONITORING_API.md.'}
+            </p>
+          </section>
+          {!s ? <NoDb error={dbError} /> : <Coll name="services" label="sites" note="shown on /homelab with a live up/down check. drag or use ↑ ↓ to order." />}
+        </Section>
+
         <Section id="reply" settings={s}>
           {!s || !data ? (
             <NoDb error={dbError} />
@@ -434,7 +457,7 @@ export const Admin = ({ live, radio, presence, kv, spotify, data, dbError }: { l
               </SettingsForm>
               <SettingsForm label="menu" note="which pages appear in the header menu. saves on its own." save={false}>
                 <div class="toggles f-wide">
-                  {(['music', 'dj', 'now', 'reply'] as const).map((k) => (
+                  {(['music', 'dj', 'now', 'homelab', 'reply'] as const).map((k) => (
                     <Toggle name={`nav.${k}`} label={k} checked={s.nav[k]} />
                   ))}
                 </div>
