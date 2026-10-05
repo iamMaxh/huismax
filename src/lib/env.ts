@@ -28,6 +28,9 @@ export type Env = {
   /** The radio (Icecast): the stream browsers play, and its status-json.xsl (default: next to the stream). */
   RADIO_STREAM_URL?: string;
   RADIO_STATUS_URL?: string;
+  /** /homelab: the Monitoring API (https; contract in MONITORING_API.md) and its bearer token (secret). Unset: demo data. */
+  MONITORING_API_URL?: string;
+  MONITORING_API_TOKEN?: string;
   /** Test overrides; leave unset in production. */
   SPOTIFY_ACCOUNTS_BASE?: string;
   SPOTIFY_API_BASE?: string;

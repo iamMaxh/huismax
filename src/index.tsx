@@ -15,6 +15,8 @@ import { allowed, emailMessage, listMessages, saveMessage, underCap, validateRep
 import { REQUEST_LIMIT, saveRequest, underRequestCap, validateRequest } from './lib/requests';
 import { chat } from './lib/chat';
 import { findLyrics, type Lyrics } from './lib/lyrics';
+import { cacher, checkServices, history as homelabHistory, overview as homelabOverview, SERVER_ID } from './lib/homelab';
+import { RANGES, type Range } from './lib/homelab-types';
 import { radioStatus } from './lib/radio';
 import { adminData, type AdminData } from './lib/admin-data';
 import { Layout, type PageKey } from './views/layout';
@@ -25,6 +27,7 @@ import { Coder } from './views/pages/coder';
 import { Music } from './views/pages/music';
 import { Now } from './views/pages/now';
 import { Reply } from './views/pages/reply';
+import { Homelab, HomelabServer } from './views/pages/homelab';
 import { NotFound } from './views/pages/notfound';
 
 type App = { Bindings: Env };
@@ -50,7 +53,7 @@ const mockParam = (c: C) => {
 
 /** Pages the admin can hide; a hidden page is a 404 for visitors (the admin still sees it). */
 const HIDEABLE: Partial<Record<PageKey, cms.PageKeyCms>> = {
-  photographer: 'photographer', dj: 'dj', hiking: 'hiking', 'vibe-coder': 'vibe-coder', music: 'music', now: 'now', reply: 'reply',
+  photographer: 'photographer', dj: 'dj', hiking: 'hiking', 'vibe-coder': 'vibe-coder', music: 'music', now: 'now', reply: 'reply', homelab: 'homelab',
 };
 
 async function page(c: C, key: PageKey, title: string | undefined, body: (live: LiveStatus, site: Site) => Child | Promise<Child>, status: 200 | 404 = 200): Promise<Response> {
@@ -123,6 +126,15 @@ app.get('/now', async (c) => {
 });
 app.get('/reply', (c) => page(c, 'reply', 'Reply', (_l, s) => <Reply intro={intro(s, 'reply')} ready={!!c.env.DB} />));
 app.get('/lab', (c) => c.redirect('/reply', 301));
+app.get('/homelab', async (c) => {
+  const sites = await items(c.env, 'services');
+  return page(c, 'homelab', 'Homelab', (_l, s) => <Homelab intro={intro(s, 'homelab')} sites={sites} />);
+});
+app.get('/homelab/:id', (c) => {
+  const id = c.req.param('id');
+  if (!SERVER_ID.test(id)) return notFound(c);
+  return page(c, 'homelab', `${id} · homelab`, () => <HomelabServer id={id} />);
+});
 app.get('/404', (c) => notFound(c));
 
 const notFound = (c: C): Promise<Response> => page(c, 'not-found', '404', () => <NotFound path={c.req.path} />, 404);
@@ -249,7 +261,8 @@ app.get('/admin', async (c) => {
       dbError = (e as Error).message;
     }
   }
-  return c.html(<Admin live={live} radio={radio} presence={presence} kv={!!c.env.STATE} spotify={spotify} data={data} dbError={c.env.DB ? dbError : 'D1 database (binding DB) is not connected.'} />);
+  const monitoring = { api: !!c.env.MONITORING_API_URL?.trim(), token: !!c.env.MONITORING_API_TOKEN?.trim() };
+  return c.html(<Admin live={live} radio={radio} presence={presence} kv={!!c.env.STATE} spotify={spotify} monitoring={monitoring} data={data} dbError={c.env.DB ? dbError : 'D1 database (binding DB) is not connected.'} />);
 });
 
 app.post('/admin/login', async (c) => {
@@ -570,7 +583,7 @@ async function edgeData<T extends { state: string }>(c: C, path: string, ttl: (d
 const CACHEABLE = new Set(['playing', 'paused', 'recent', 'idle', 'ok']);
 const only = (ttl: number) => (data: { state: string }) => (CACHEABLE.has(data.state) ? ttl : 0);
 // Browsers never keep a copy, so a poll always sees the edge's current answer.
-const fresh = (data: unknown, status: 200 | 409 = 200) =>
+const fresh = (data: unknown, status: 200 | 404 | 409 | 503 = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const cachedNow = (c: C) => edgeData(c, '/api/spotify/now', only(10), () => nowPlaying(c.env));
 
@@ -621,6 +634,47 @@ app.get('/api/spotify/lyrics', async (c) => {
   return new Response(JSON.stringify(lyrics), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': LYRICS_BROWSER[lyrics.state] },
   });
+});
+
+/* ——— homelab (public, src/lib/homelab.ts) ——— */
+
+// hiding the page in /admin closes its data too
+const homelabOpen = async (c: C) => (await settings(c.env)).pages.homelab !== false || (await isAdmin(c));
+const homelabCache = (c: C) => cacher(new URL(c.req.url).origin, (p) => c.executionCtx.waitUntil(p));
+const selfUrl = (c: C) => new URL(c.env.PUBLIC_ORIGIN || c.req.url);
+const unreachable = (c: C, e: unknown) => {
+  console.error('homelab:', (e as Error).message);
+  return fresh({ error: 'monitoring is not answering' }, 503);
+};
+
+app.get('/api/homelab', async (c) => {
+  if (!(await homelabOpen(c))) return fresh({ error: 'not found' }, 404);
+  try {
+    return fresh(await homelabOverview(c.env, selfUrl(c), homelabCache(c)));
+  } catch (e) {
+    return unreachable(c, e);
+  }
+});
+
+app.get('/api/homelab/services', async (c) => {
+  if (!(await homelabOpen(c))) return fresh({ error: 'not found' }, 404);
+  const list = (await items(c.env, 'services')).map((s) => ({ id: String(s.id), url: String(s.url) })).filter((s) => /^https:\/\//.test(s.url));
+  // about once a minute, whoever is looking
+  const checked = await homelabCache(c)(`services:${list.map((s) => s.id).join(',')}`, 60, () => checkServices(list));
+  return fresh({ checkedAt: checked.fetchedAt, services: checked.data });
+});
+
+app.get('/api/homelab/:id/history', async (c) => {
+  if (!(await homelabOpen(c))) return fresh({ error: 'not found' }, 404);
+  const id = c.req.param('id');
+  const range = c.req.query('range') ?? '1h';
+  if (!SERVER_ID.test(id) || !(RANGES as readonly string[]).includes(range)) return c.json({ error: 'bad request' }, 400);
+  try {
+    const h = await homelabHistory(c.env, selfUrl(c), homelabCache(c), id, range as Range);
+    return h ? fresh(h) : fresh({ error: 'no such server' }, 404);
+  } catch (e) {
+    return unreachable(c, e);
+  }
 });
 
 // Linking is admin-only, so nobody else can attach their account to the site.

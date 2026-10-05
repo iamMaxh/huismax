@@ -11,6 +11,7 @@ const PATHS: Record<PageKeyCms, string> = {
   music: '/music',
   now: '/now',
   reply: '/reply',
+  homelab: '/homelab',
 };
 
 /** False when `href` is one of our pages and the admin has hidden it (it would be a 404 for visitors). */
@@ -28,6 +29,7 @@ export function menuLinks(s: Settings): NavLink[] {
     { href: '/music', label: 'music', page: 'music' },
     { href: '/dj', label: 'dj', page: 'dj' },
     { href: '/now', label: 'now', page: 'now' },
+    { href: '/homelab', label: 'homelab', page: 'homelab' },
     { href: '/reply', label: 'reply', page: 'reply' },
   ];
   return [{ href: '/', label: 'home', page: 'home' }, ...optional.filter((l) => s.nav[l.page as keyof Settings['nav']] && isOpen(s, l.href))];

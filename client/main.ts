@@ -15,6 +15,7 @@ import { initCoder } from './pages/coder';
 import { initMusic } from './pages/music';
 import { initReply } from './pages/reply';
 import { initNotFound } from './pages/notfound';
+import { initHomelab } from './pages/homelab';
 
 export type PageInit = (main: HTMLElement, scope: Scope, nav: (href: string) => void) => void;
 
@@ -26,6 +27,7 @@ const pages: Record<string, PageInit> = {
   'vibe-coder': initCoder,
   music: initMusic,
   reply: initReply,
+  homelab: initHomelab,
   'not-found': initNotFound,
 };
 

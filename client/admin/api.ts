@@ -4,16 +4,16 @@ export type FieldType = 'text' | 'long' | 'url' | 'link' | 'date' | 'int' | 'rea
 export type Field = { name: string; type: FieldType; label: string; max?: number; required?: boolean; options?: readonly string[]; min?: number; hint?: string };
 export type Def = { flag: 'visible' | 'published'; order: 'sort' | 'number' | 'newest'; fields: Field[] };
 export type Item = { id: string; [k: string]: string | number };
-export type CollectionName = 'identities' | 'projects' | 'music' | 'now' | 'photos' | 'dj' | 'requests' | 'links';
+export type CollectionName = 'identities' | 'projects' | 'music' | 'now' | 'photos' | 'dj' | 'requests' | 'services' | 'links';
 
-export type PageKey = 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply';
+export type PageKey = 'photographer' | 'dj' | 'hiking' | 'vibe-coder' | 'music' | 'now' | 'reply' | 'homelab';
 export type Settings = {
   headline: string;
   tagline: string;
   description: string;
   footer: string;
   spotifyProfile: string;
-  nav: Record<'music' | 'dj' | 'now' | 'reply', boolean>;
+  nav: Record<'music' | 'dj' | 'now' | 'homelab' | 'reply', boolean>;
   pages: Record<PageKey, boolean>;
   intros: Record<PageKey, string>;
   replyTo: string;

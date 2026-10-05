@@ -124,6 +124,18 @@ export const COLLECTIONS = {
     order: 'newest',
     fields: [t('request', 'request', 200, { required: true }), t('name', 'from', 40)],
   },
+  /** the self-hosted sites on /homelab, each with a live up/down check */
+  services: {
+    table: 'services',
+    flag: 'visible',
+    flagDefault: 1,
+    order: 'sort',
+    fields: [
+      t('name', 'name', 30, { required: true, hint: 'e.g. cloud' }),
+      { name: 'url', type: 'url', label: 'address', max: 200, required: true, hint: 'https://cloud.huismax.com' },
+      t('description', 'what it is', 120, { hint: 'one short line, e.g. Nextcloud. Files and calendars.' }),
+    ],
+  },
   links: {
     table: 'links',
     flag: 'visible',
@@ -293,8 +305,8 @@ export async function reorder(env: Env, name: CollectionName, ids: unknown) {
 
 /* ——— settings ——— */
 
-export const PAGE_KEYS = ['photographer', 'dj', 'hiking', 'vibe-coder', 'music', 'now', 'reply'] as const;
-export const NAV_KEYS = ['music', 'dj', 'now', 'reply'] as const;
+export const PAGE_KEYS = ['photographer', 'dj', 'hiking', 'vibe-coder', 'music', 'now', 'reply', 'homelab'] as const;
+export const NAV_KEYS = ['music', 'dj', 'now', 'homelab', 'reply'] as const;
 export type PageKeyCms = (typeof PAGE_KEYS)[number];
 
 export type Settings = {
@@ -323,9 +335,9 @@ export const SETTINGS_DEFAULTS: Settings = {
   description: 'WHO IS MAX?',
   footer: 'huismax © 2026',
   spotifyProfile: 'https://open.spotify.com/user/31tzngiyvyxa4yh6ntw4zewh5h7e?si=95b388b5c75a4352',
-  nav: { music: true, dj: true, now: true, reply: true },
-  pages: { photographer: true, dj: true, hiking: true, 'vibe-coder': true, music: true, now: true, reply: true },
-  intros: { photographer: '', dj: '', hiking: '', 'vibe-coder': '', music: '', now: '', reply: '' },
+  nav: { music: true, dj: true, now: true, homelab: true, reply: true },
+  pages: { photographer: true, dj: true, hiking: true, 'vibe-coder': true, music: true, now: true, reply: true, homelab: true },
+  intros: { photographer: '', dj: '', hiking: '', 'vibe-coder': '', music: '', now: '', reply: '', homelab: '' },
   replyTo: '',
   replyFrom: '', // empty: EMAIL_FROM, else Resend's test sender (see reply.ts)
 };

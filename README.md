@@ -24,6 +24,7 @@ src/              worker (server-rendered pages + API)
   lib/media.ts    uploaded images in R2: type sniffing, safe keys, /media/<key>
   lib/reply.ts    /reply messages: stored in D1, emailed with Resend
   lib/requests.ts /dj requests for the next live set (D1, published in /admin)
+  lib/homelab.ts  /homelab: the Monitoring API (or demo data), cleaned up, cached, assessed
   views/          layout, components, pages
 client/           browser code, bundled by scripts/build.mjs into public/assets
   lib/router.ts   same-origin navigation that swaps <main> only (keeps audio playing)
@@ -128,6 +129,16 @@ The same guards as /reply apply:
 - 30 an hour site-wide.
 
 Hiding the DJ page in /admin also closes the form.
+
+## Homelab
+
+`/homelab` shows the servers: the overall status, each server's CPU, memory, storage, network, uptime and Docker containers, and history charts on `/homelab/<id>`. Under it are the self-hosted sites, which you edit in `/admin` → homelab, each with a live up/down check.
+
+The server data comes from your own Monitoring API (the contract is in `MONITORING_API.md`). Set `MONITORING_API_URL` (and optionally the secret `MONITORING_API_TOKEN`) on the Worker. Until then the page shows demo data, labelled as such.
+
+- The worker asks the API, keeps only known fields and masks addresses. Answers are cached at the edge: 15 s for servers, 1–15 min for history.
+- The last good answer is kept for a week; when the API stops answering, the page shows it marked "stale".
+- `GET /api/homelab`, `GET /api/homelab/<id>/history?range=1h|24h|7d` and `GET /api/homelab/services` are what the page polls. They return 404 while the page is hidden in /admin.
 
 ## Live chat
 

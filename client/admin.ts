@@ -66,6 +66,7 @@ function cms(main: HTMLElement, data: AdminData) {
   coll('projects', { noun: 'project', title: (it) => s(it.name), sub: (it) => join(it.status, it.url, it.note) });
   coll('now', { noun: 'item', title: (it) => s(it.text), sub: (it) => join(it.label, it.url), empty: 'nothing yet. the now page shows only what you add here.' });
   coll('links', { noun: 'link', title: (it) => s(it.label), sub: (it) => s(it.url) });
+  coll('services', { noun: 'site', title: (it) => s(it.name), sub: (it) => join(it.url, it.description), empty: 'no sites yet. /homelab leaves the section out.' });
   coll('dj', {
     noun: 'session',
     title: (it) => `${pad3(it.number)}  ${s(it.title)}`,
