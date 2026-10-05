@@ -134,7 +134,7 @@ Hiding the DJ page in /admin also closes the form.
 
 `/homelab` shows the servers: the overall status, each server's CPU, memory, storage, network, uptime and Docker containers, and history charts on `/homelab/<id>`. Under it are the self-hosted sites, which you edit in `/admin` → homelab, each with a live up/down check.
 
-The server data comes from your own Monitoring API (the contract is in `MONITORING_API.md`). Set `MONITORING_API_URL` (and optionally the secret `MONITORING_API_TOKEN`) on the Worker. Until then the page shows demo data, labelled as such.
+The server data comes from the Huismax Monitoring API, `MONITORING_API_URL` = `https://api.huismax.com` (in `wrangler.jsonc`; optional secret `MONITORING_API_TOKEN`). The site uses the `/v1` contract when the API has it, and the existing endpoints until then; see `MONITORING_API.md`. Without a URL (local dev) the page shows demo data, labelled as such.
 
 - The worker asks the API, keeps only known fields and masks addresses. Answers are cached at the edge: 15 s for servers, 1–15 min for history.
 - The last good answer is kept for a week; when the API stops answering, the page shows it marked "stale".

@@ -18,6 +18,8 @@
     "LIVE_SESSION_TITLE": "",
     // The radio (Icecast). Browsers stream it directly; the site is live whenever this mount is on air (src/lib/radio.ts).
     "RADIO_STREAM_URL": "https://radio.huismax.com/live.mp3",
+    // /homelab: the Monitoring API (src/lib/homelab.ts). A token, if it ever needs one: secret MONITORING_API_TOKEN.
+    "MONITORING_API_URL": "https://api.huismax.com",
     // Public by design (it appears in the Spotify login URL). The client SECRET is never here:
     // it stays a Secret in the Cloudflare dashboard.
     "SPOTIFY_CLIENT_ID": "e0ea0ee972a640e88f0aac83e2acb846"

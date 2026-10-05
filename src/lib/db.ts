@@ -2,6 +2,7 @@ import type { Env } from './env';
 import m0001 from '../../migrations/0001_cms.sql';
 import m0002 from '../../migrations/0002_requests.sql';
 import m0003 from '../../migrations/0003_services.sql';
+import m0004 from '../../migrations/0004_services_erpnext.sql';
 
 /**
  * D1 schema + first content, applied by the worker itself: the site deploys from a git push, so nobody runs
@@ -12,6 +13,7 @@ const MIGRATIONS: [name: string, sql: string][] = [
   ['0001_cms.sql', m0001],
   ['0002_requests.sql', m0002],
   ['0003_services.sql', m0003],
+  ['0004_services_erpnext.sql', m0004],
 ];
 
 let done = false;

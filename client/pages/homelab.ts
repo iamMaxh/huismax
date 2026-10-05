@@ -261,10 +261,11 @@ function detailPage(root: HTMLElement, id: string, scope: Scope) {
     issues.replaceChildren(...s.issues.map((i) => h('li', null, i)));
 
     const load = s.cpu.load ? `load ${s.cpu.load.map((l) => l.toFixed(2)).join(' · ')}` : '';
+    const disks = storageTotal(s);
     stats.replaceChildren(
       stat('cpu', pct(s.cpu.usage), [load, s.cpu.temperature !== null ? `${Math.round(s.cpu.temperature)}°C` : ''].filter(Boolean).join(' · '), s.cpu.usage),
-      stat('memory', pct(share(s.memory)), s.memory ? ofTotal(s.memory.used, s.memory.total) : '', share(s.memory)),
-      stat('swap', pct(share(s.swap)), s.swap ? ofTotal(s.swap.used, s.swap.total) : 'none', share(s.swap)),
+      stat('memory', pct(share(s.memory)), [s.memory ? ofTotal(s.memory.used, s.memory.total) : '', s.swap ? `swap ${pct(share(s.swap))}` : ''].filter(Boolean).join(' · '), share(s.memory)),
+      stat('storage', pct(share(disks.total ? disks : null)), disks.total ? ofTotal(disks.used, disks.total) : '', share(disks.total ? disks : null)),
       stat('network', s.network ? `↓ ${rate(s.network.rx)}` : '—', s.network ? `↑ ${rate(s.network.tx)}` : ''),
       stat('containers', s.containers.length ? `${running(s.containers)}/${s.containers.length}` : '—', s.containers.length ? 'running' : 'none'),
       stat('uptime', uptime(s.uptime), s.system.bootTime ? `since ${date(s.system.bootTime)}` : ''),
