@@ -83,9 +83,9 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
                 <span class="home-chat-dot" aria-hidden="true" />
                 chat with max's ai assistant <span aria-hidden="true">→</span>
               </button>
-              {/* a perk: anyone can hold a video call on Max's own server (MiroTalk) */}
-              <a class="home-chat home-perk" href="https://meet.huismax.com" target="_blank" rel="noopener noreferrer">
-                <span class="home-perk-tag">free</span> video calls on max's server <span aria-hidden="true">↗</span>
+              {/* Max's open-source ESP32 project (Muse Companion), on GitHub */}
+              <a class="home-chat home-perk" href="https://github.com/huismaxx/companion" target="_blank" rel="noopener noreferrer">
+                <span class="home-perk-tag">open source</span> max's esp32 project <span aria-hidden="true">↗</span>
               </a>
             </div>
           </div>
