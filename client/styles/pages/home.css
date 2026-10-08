@@ -245,6 +245,9 @@ a.index-cell:hover { background: var(--bg-2); }
 .home-perk-tag { color: var(--fg-3); transition: color var(--fast); }
 .home-perk-tag::after { content: ' ·'; }
 .home-perk:hover .home-perk-tag, .home-perk:focus-visible .home-perk-tag { color: inherit; }
+.home-perk-note { flex-basis: 100%; margin: 0; font-size: 11px; color: var(--fg-3); }
+.home-perk-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; transition: color var(--fast); }
+.home-perk-note a:hover, .home-perk-note a:focus-visible { color: var(--fg); }
 
 /* live: the DJ channel's spectrum in the album art's place (client/pages/home.ts) */
 [data-live-card] .listening-art { background: var(--bg-2); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--live) 45%, var(--line)); }
