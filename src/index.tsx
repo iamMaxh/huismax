@@ -29,6 +29,7 @@ import { Now } from './views/pages/now';
 import { Reply } from './views/pages/reply';
 import { Homelab, HomelabServer } from './views/pages/homelab';
 import { Muse } from './views/pages/muse';
+import { museRelease } from './lib/muse-release';
 import { NotFound } from './views/pages/notfound';
 
 type App = { Bindings: Env };
@@ -136,7 +137,10 @@ app.get('/homelab/:id', (c) => {
   if (!SERVER_ID.test(id)) return notFound(c);
   return page(c, 'homelab', `${id} · homelab`, () => <HomelabServer id={id} />);
 });
-app.get('/muse', (c) => page(c, 'muse', 'Build your own Muse gadget', () => <Muse />));
+app.get('/muse', async (c) => {
+  const release = await museRelease();
+  return page(c, 'muse', 'Build your own Muse gadget', () => <Muse release={release} />);
+});
 app.get('/404', (c) => notFound(c));
 
 const notFound = (c: C): Promise<Response> => page(c, 'not-found', '404', () => <NotFound path={c.req.path} />, 404);
