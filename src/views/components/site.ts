@@ -41,6 +41,7 @@ export function paletteLinks(s: Settings): NavLink[] {
     { href: '/photographer', label: 'photographer', page: 'photographer' },
     { href: '/hiking', label: 'hiking', page: 'hiking' },
     { href: '/vibe-coder', label: 'vibe coder', page: 'vibe-coder' },
+    { href: '/muse', label: 'muse gadget', page: 'muse' },
   ];
   const menu = menuLinks(s);
   return [menu[0], ...identities.filter((l) => isOpen(s, l.href)), ...menu.slice(1)];

@@ -83,17 +83,10 @@ export const Home = ({ live, presence, spotifyConnected, settings, identities, p
                 <span class="home-chat-dot" aria-hidden="true" />
                 chat with max's ai assistant <span aria-hidden="true">→</span>
               </button>
-              {/* Max's open-source ESP32 project (Muse Companion), on GitHub */}
-              <a class="home-chat home-perk" href="https://github.com/huismaxx/companion" target="_blank" rel="noopener noreferrer">
-                <span class="home-perk-tag">open source</span> max's esp32 project <span aria-hidden="true">↗</span>
+              {/* Max's open-source ESP32 project (Muse Companion): the how-to page, which links the source */}
+              <a class="home-chat home-perk" href="/muse">
+                <span class="home-perk-tag">open source</span> build your own muse gadget <span aria-hidden="true">→</span>
               </a>
-              {/* the firmware only targets this one board */}
-              <p class="home-perk-note mono">
-                only for the{' '}
-                <a href="https://www.amazon.com/dp/B0H28X8SQ4" target="_blank" rel="noopener noreferrer">
-                  Hosyond ESP32-S3 3.5″ touchscreen <span aria-hidden="true">↗</span>
-                </a>
-              </p>
             </div>
           </div>
           {/* personal state + what's playing; a live DJ session overrides both and they return when it ends */}
