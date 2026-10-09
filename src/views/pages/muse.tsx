@@ -1,9 +1,7 @@
 import type { Child } from 'hono/jsx';
+import type { MuseRelease } from '../../lib/muse-release';
 import { PageHead } from '../components/head';
 
-/** The current Muse Companion release. Bump these together when a new installer is on download.huismax.com. */
-const VERSION = '0.4.6';
-const SETUP = `https://download.huismax.com/MuseCompanion-Setup-${VERSION}.exe`;
 const REPO = 'https://github.com/huismaxx/companion';
 const TOKENS = 'https://gadgets.muse.ai/settings/sdk-tokens';
 
@@ -52,8 +50,11 @@ const N = ({ children }: { children?: Child }) => (
   </td>
 );
 
-/** /muse: how to turn a supported ESP32 board into a Muse gadget with Muse Companion. */
-export const Muse = () => (
+/**
+ * /muse: how to turn a supported ESP32 board into a Muse gadget with Muse Companion. `release` is the installer
+ * download.huismax.com/latest.json points at, once it's really there (src/lib/muse-release.ts).
+ */
+export const Muse = ({ release }: { release: MuseRelease }) => (
   <div class="muse-page">
     <PageHead crumb="muse gadget" title="Build your own Muse gadget" class="mu-head">
       <p class="page-intro">
@@ -61,9 +62,9 @@ export const Muse = () => (
         Windows PC, paste your Muse SDK token, press <b>INSTALL</b>, and Muse Companion does the rest.
       </p>
       <div class="mu-cta">
-        <a class="mu-download" href={SETUP}>
+        <a class="mu-download" href={release.url}>
           <span>download Muse Companion</span>
-          <span class="mono">v{VERSION} · Windows</span>
+          <span class="mono">v{release.version} · Windows</span>
         </a>
         <Out href={REPO}>source on GitHub</Out>
       </div>
@@ -196,7 +197,7 @@ export const Muse = () => (
 
         <Step n={2} title="Install Muse Companion">
           <p>
-            <a class="mu-link" href={SETUP}>
+            <a class="mu-link" href={release.url}>
               Download the installer
             </a>{' '}
             (2.4 MB) and run it. It fetches the app (about 24 MB), installs it, and opens it. No Python or ESP-IDF needed. It asks for
@@ -406,9 +407,9 @@ export const Muse = () => (
       <h2 class="mu-h2">Ready?</h2>
       <p class="mu-lead">Pick a board, get your token, plug it in, press INSTALL. Your Muse gadget is a few minutes away.</p>
       <div class="mu-cta">
-        <a class="mu-download" href={SETUP}>
+        <a class="mu-download" href={release.url}>
           <span>download Muse Companion</span>
-          <span class="mono">v{VERSION} · Windows</span>
+          <span class="mono">v{release.version} · Windows</span>
         </a>
         <Out href={BOARDS.hosyond.url}>Hosyond 3.5″</Out>
         <Out href={BOARDS.stick.url}>M5StickS3</Out>
