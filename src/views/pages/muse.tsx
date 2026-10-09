@@ -2,7 +2,7 @@ import type { Child } from 'hono/jsx';
 import { PageHead } from '../components/head';
 
 /** The current Muse Companion release. Bump these together when a new installer is on download.huismax.com. */
-const VERSION = '0.4.5';
+const VERSION = '0.4.6';
 const SETUP = `https://download.huismax.com/MuseCompanion-Setup-${VERSION}.exe`;
 const REPO = 'https://github.com/huismaxx/companion';
 const TOKENS = 'https://gadgets.muse.ai/settings/sdk-tokens';
