@@ -10,6 +10,11 @@ npm run typecheck
 npm run deploy       # wrangler deploy (builds the client first)
 ```
 
+Working on the code (people or AI agents): read [ARCHITECTURE.md](ARCHITECTURE.md) first. It covers the layers, module
+boundaries and working rules. [PROJECT_MAP.md](PROJECT_MAP.md) says where each file lives and how risky it is to
+change, [DEPENDENCIES.md](DEPENDENCIES.md) lists packages, bindings, env vars and allowed imports, and
+[CONTRACTS.md](CONTRACTS.md) defines every interface. `npm test` enforces the import rules (`test/boundaries.test.ts`).
+
 ## Layout
 
 ```
